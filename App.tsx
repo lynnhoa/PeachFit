@@ -471,14 +471,14 @@ export default function App(){
       </div>
 
       {/* BODY — same padding discipline as Me/Stats */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"14px 14px 14px",gap:10,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px 12px",gap:8,overflow:"hidden",minHeight:0,background:P.roseLite}}>
 
         {/* Banner — flexShrink:0 */}
-        <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"9px 14px",flexShrink:0,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
-          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.5}}>{getBanner(data.sessions,data.nutritionLog)}</p>
+        <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"8px 14px",flexShrink:0,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
+          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.45}}>{getBanner(data.sessions,data.nutritionLog)}</p>
         </div>
 
-        {/* Stats row — flexShrink:0 */}
+        {/* Stats row — flexShrink:0, compact 2-line chips */}
         <div style={{display:"flex",gap:8,flexShrink:0}}>
           {(()=>{
             const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
@@ -487,13 +487,15 @@ export default function App(){
             const ws=last?.waist??(data.profile.startWaist??69); const wsStart=data.profile.startWaist??(first?.waist??69);
             const wtDelta=last?(wt-wtStart).toFixed(1):null;
             const wsDelta=last?(ws-wsStart).toFixed(1):null;
-            return[[IcWeight,`${wt}kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws}cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
-              <div key={l} style={{flex:1,background:P.white,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 1px 6px rgba(212,120,138,0.08)",cursor:l!=="Sessions"?"pointer":"default"}}
+            return[[IcWeight,`${wt} kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws} cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
+              <div key={l} style={{flex:1,background:P.white,borderRadius:12,padding:"9px 10px",boxShadow:"0 1px 6px rgba(212,120,138,0.08)",cursor:l!=="Sessions"?"pointer":"default"}}
                 onClick={()=>l!=="Sessions"&&setLogModal(true)}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={P.roseDark} s={15}/></div>
-                <div className="mono" style={{fontSize:14,color:P.roseDeep,fontWeight:600,lineHeight:1}}>{v}</div>
-                {delta&&<div style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:parseFloat(delta)<0?600:400,marginTop:2}}>{delta}</div>}
-                <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.07em",textTransform:"uppercase",marginTop:delta?1:3}}>{l}</div>
+                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
+                  <Ic c={P.roseDark} s={13}/>
+                  <span className="mono" style={{fontSize:13,color:P.roseDeep,fontWeight:600,lineHeight:1}}>{v}</span>
+                  {delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600}}>{delta}</span>}
+                </div>
+                <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.07em",textTransform:"uppercase"}}>{l}</div>
               </div>
             ));
           })()}
