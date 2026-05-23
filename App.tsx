@@ -463,11 +463,11 @@ export default function App(){
     };
     return(<div className="screen">
       {/* Header */}
-      <div style={{background:P.roseDeep,padding:"52px 20px 18px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{background:P.roseDeep,padding:"56px 20px 28px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:3}}>{getGreeting()}</p>
+        <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
-        {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:5,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
+        {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:8,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
       </div>
       <div style={{padding:"12px 14px 80px"}}>
         {/* Banner */}
@@ -632,8 +632,8 @@ export default function App(){
         return tS<tA?s:a;
       },SESSIONS[0]);
       return(<div className="screen" style={{background:P.bg}}>
-        <div style={{background:P.roseDeep,padding:"52px 20px 18px",flexShrink:0}}>
-          <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:3}}>Train</p>
+        <div style={{background:P.roseDeep,padding:"56px 20px 28px",flexShrink:0}}>
+          <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>Train</p>
           <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
         </div>
         <div style={{padding:"12px 14px 80px"}}>
@@ -1070,9 +1070,9 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER — dark, coach sentence leads ── */}
-      <div style={{padding:"52px 18px 14px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"56px 18px 28px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-44,right:-44,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>Your progress</p>
+        <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
         {/* Coach sentence — Playfair, plain white + hero highlights */}
         <h1 className="serif" style={{fontSize:18,color:"white",fontWeight:400,lineHeight:1.3,marginBottom:11}}>
           {coachParts.map((p,i)=>typeof p==="string"
@@ -1515,9 +1515,9 @@ export default function App(){
 
     return(<>
       <div className="screen-full" style={{background:P.roseDeep}}>
-        <div style={{padding:"48px 18px 14px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{padding:"56px 18px 28px",position:"relative",overflow:"hidden",flexShrink:0}}>
           <div style={{position:"absolute",top:-50,right:-50,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-          <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:4}}>Your profile</p>
+          <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>Your profile</p>
           <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
             <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>{profile.name}</h1>
             <IcEdit c={P.roseMid} s={14}/>
