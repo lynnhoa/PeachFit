@@ -259,7 +259,7 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 .btnP:active{opacity:0.82;}
 .btnG{background:none;border:1.5px solid ${P.rosePrimary};color:${P.roseDark};border-radius:40px;padding:9px 18px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-appearance:none;}
 .nav{flex-shrink:0;background:white;border-top:1px solid ${P.roseLite};display:flex;flex-direction:column;z-index:100;padding-bottom:min(env(safe-area-inset-bottom,0px),8px);}
-.nav-icons{display:flex;align-items:center;justify-content:space-around;height:48px;width:100%;padding:0 4px;}
+.nav-icons{display:flex;align-items:flex-end;justify-content:space-around;height:48px;width:100%;padding:0 4px 6px;}
 .nav-safe{display:none;}
 .nb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:none;cursor:pointer;padding:0 10px;font-family:'DM Sans',sans-serif;-webkit-appearance:none;flex:1;}
 .mo{position:fixed;inset:0;background:rgba(61,32,40,0.65);z-index:200;display:flex;align-items:flex-end;backdrop-filter:blur(6px);}
