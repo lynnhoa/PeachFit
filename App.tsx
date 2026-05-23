@@ -119,21 +119,23 @@ const ld=()=>{
 const sv=(d)=>{try{localStorage.setItem(KEY,JSON.stringify(d));}catch{}};
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
-function getWeight(ex,sessions,daysSince=0){
+function getWeight(ex,sessions,_daysSince=0){
   if(ex.bw)return"BW";
+  // Only sessions that include this exercise (same session type)
   const hist=sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined);
   if(!hist.length)return ex.kg;
   const last=hist[hist.length-1];
   const w=last.weights[ex.id];
+  // daysSince is per-exercise — days since the last time THIS exercise was done
+  const daysSince=Math.floor((Date.now()-new Date(last.date))/86400000);
   // Overload reset: 2+ week break → reduce 10%
   if(daysSince>14)return Math.round((w*0.9)*4)/4;
   if(!ex.step||!ex.freq)return w;
   const recent=hist.slice(-ex.freq);
   // TIME GATE: all freq sessions must have happened AND span at least 7 days
-  // Prevents double-session weeks triggering overload too fast (spontaneous scheduling)
   if(recent.length<ex.freq)return w;
   const spanDays=(new Date(recent[recent.length-1].date)-new Date(recent[0].date))/86400000;
-  const minSpan=ex.freq>1?7:0; // single-freq exercises have no span requirement
+  const minSpan=ex.freq>1?7:0;
   if(spanDays<minSpan)return w;
   const allDone=recent.every(s=>s.comp&&(s.comp[ex.id]||0)>=ex.sets);
   return allDone?Math.round((w+ex.step)*4)/4:w;
@@ -155,7 +157,14 @@ function getTodayProtein(nutritionLog){
   const today=new Date().toISOString().slice(0,10);
   return(nutritionLog||[]).find(e=>e.date===today)||null;
 }
-function getBanner(sessions,nutritionLog){
+function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
+  const last=bodyLog.length?bodyLog[bodyLog.length-1]:null;
+  const gw=profile?.goalWeight??45;const gws=profile?.goalWaist??63;
+  const hitWeight=last?.weight!=null&&last.weight<=gw;
+  const hitWaist=last?.waist!=null&&last.waist<=gws;
+  if(hitWeight&&hitWaist)return`${gws} cm waist. ${gw} kg. You did both. Now let's see how far you can really go.`;
+  if(hitWeight)return`${gw} kg — you hit your weight goal. The work isn't over, it's just beginning.`;
+  if(hitWaist)return`${gws} cm — waist goal reached. Keep pushing. There's always a next level.`;
   if(!sessions.length)return"Your journey starts today. Every rep counts.";
   const last=sessions[sessions.length-1];
   const daysSince=Math.floor((Date.now()-new Date(last.date))/86400000);
@@ -279,6 +288,7 @@ export default function App(){
   const[logModal,setLogModal]=useState(false);
   const[progressModal,setProgressModal]=useState(null); // "chart"|"week"|"strength"|"milestones"
   const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"
+  const[planModal,setPlanModal]=useState(null); // session plan preview modal
   const[elapsed,setElapsed]=useState(0);
   const startTimeRef=useRef(null);
   const rafRef=useRef(null);
@@ -358,13 +368,11 @@ export default function App(){
   };
 
   const startSession=pl=>{
-    const lastS=data.sessions[data.sessions.length-1];
-    const ds=lastS?Math.floor((Date.now()-new Date(lastS.date))/86400000):0;
     const initWeights={};
-    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions,ds);});
+    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions);});
     setActive(pl);setElapsed(0);lastSecRef.current=-1;
     setSess({comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
-    setSummary(null);setRest(null);setTab("workout");
+    setSummary(null);setRest(null);setTab("today");
   };
 
   const completeCurrentSet=(ex,ei)=>{
@@ -375,9 +383,7 @@ export default function App(){
       // Use the weight Lynn has set (pre-populated or manually adjusted) — never recalculate mid-session
       const weights={...prev.weights};
       if(!ex.bw&&weights[ex.id]==null){
-        const lastS=data.sessions[data.sessions.length-1];
-        const ds=lastS?Math.floor((Date.now()-new Date(lastS.date))/86400000):0;
-        weights[ex.id]=getWeight(ex,data.sessions,ds);
+        weights[ex.id]=getWeight(ex,data.sessions);
       }
       const csets={...prev.csets,[ex.id]:cnt};
       const allDone=cnt>=ex.sets;
@@ -440,6 +446,7 @@ export default function App(){
 
   // ── TODAY ─────────────────────────────────────────────────────────────────
   const Today=()=>{
+    if(active||summary)return<Workout/>;
     const[expanded,setExpanded]=useState(null);
     const lastSess=data.sessions[data.sessions.length-1];
     const daysSince=lastSess?Math.floor((Date.now()-new Date(lastSess.date))/86400000):null;
@@ -475,7 +482,7 @@ export default function App(){
 
         {/* Banner — flexShrink:0 */}
         <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"8px 14px",flexShrink:0,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
-          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.45}}>{getBanner(data.sessions,data.nutritionLog)}</p>
+          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.45}}>{getBanner(data.sessions,data.nutritionLog,data.bodyLog,data.profile)}</p>
         </div>
 
         {/* Stats row — flexShrink:0, compact 2-line chips */}
@@ -523,9 +530,8 @@ export default function App(){
             const doneThisWeek=weekCounts[pl.id]||0;
             const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
             const daysSinceLast=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):null;
-            const isOpen=expanded===pl.id;
             return(<div key={pl.id} style={{flexShrink:0}}>
-              <div style={{background:`linear-gradient(135deg,${pl.color}33,${pl.color}18)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:isOpen?"12px 12px 0 0":"12px",padding:"10px 14px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"none",transition:"border-radius 0.18s ease"}}>
+              <div onClick={()=>setPlanModal(pl)} style={{background:`linear-gradient(135deg,${pl.color}33,${pl.color}18)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:"12px",padding:"10px 14px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"none",cursor:"pointer"}}>
                 {isSuggested&&<span style={{background:pl.color,color:"white",fontSize:7,letterSpacing:"0.15em",textTransform:"uppercase",padding:"2px 8px",borderRadius:20,display:"inline-block",marginBottom:6,fontFamily:"'DM Sans'",fontWeight:500}}>Suggested today</span>}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                   <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
@@ -538,35 +544,13 @@ export default function App(){
                       {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:1,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
                     </div>
                   </div>
-                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,marginLeft:10,flexShrink:0}}>
-                    <button onClick={()=>startSession(pl)} style={{width:30,height:30,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`}}>
+                  <div style={{marginLeft:10,flexShrink:0}}>
+                    <button onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:30,height:30,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`}}>
                       <IcPlay c="white" s={11}/>
-                    </button>
-                    <button onClick={(e)=>{e.stopPropagation();setExpanded(isOpen?null:pl.id);}} style={{background:"none",border:"none",cursor:"pointer",color:P.roseMid,fontSize:9,fontFamily:"'DM Sans'",letterSpacing:"0.04em",padding:0}}>
-                      {isOpen?"▲ hide":"▾ plan"}
                     </button>
                   </div>
                 </div>
               </div>
-              {isOpen&&(<div className="drw" style={{background:P.white,border:`1.5px solid ${pl.color}`,borderTop:"none",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
-                {pl.exercises.map((ex,i)=>{
-                  const ds=daysSince??0;
-                  const cw=getWeight(ex,data.sessions,ds);const pr=getPR(ex,data.sessions);
-                  const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
-                  return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"8px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:8}}>
-                    <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:14,textAlign:"right"}}>{i+1}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
-                      <p style={{fontSize:9,color:P.roseMid}}>{ex.muscle}</p>
-                    </div>
-                    <div style={{textAlign:"right",flexShrink:0}}>
-                      <p className="mono" style={{fontSize:11,color:P.roseDark}}>{ex.sets}×{ex.reps}</p>
-                      <p style={{fontSize:10,color:isUp?P.roseDark:P.roseMid,fontWeight:isUp?600:400}}>{ex.bw?"BW":`${cw}kg`}{isUp?" ↑":""}</p>
-                    </div>
-                  </div>);
-                })}
-                <div style={{padding:"10px 14px"}}><button onClick={()=>startSession(pl)} className="btnP" style={{fontSize:12,padding:"11px"}}>START {pl.name.toUpperCase()} →</button></div>
-              </div>)}
             </div>);
           })}
         </div>
@@ -652,10 +636,8 @@ export default function App(){
     const currentSet=sess.currentSet??0;
     const phase=sess.phase??"active";
     const prog=totSets>0?doneSets/totSets:0;
-    const lastSessW=data.sessions[data.sessions.length-1];
-    const daysSinceW=lastSessW?Math.floor((Date.now()-new Date(lastSessW.date))/86400000):0;
     // cw = what Lynn will actually lift (from sess.weights, editable). Falls back to getWeight if not set.
-    const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,data.sessions,daysSinceW))):0;
+    const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,data.sessions))):0;
     const pr=ex?getPR(ex,data.sessions):null;
     const isUp=ex&&!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
     const setsCompletedForEx=ex?Object.keys(sess.comp).filter(k=>k.startsWith(`${ei}-`)&&sess.comp[k]).length:0;
@@ -718,7 +700,7 @@ export default function App(){
           </div>
           <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
             <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
-            {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions,daysSinceW)} kg`}</p></>)
+            {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions)} kg`}</p></>)
             :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":`${cw} kg`}</p></>)}
           </div>
           <button onClick={advanceAfterRest} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
@@ -978,13 +960,14 @@ export default function App(){
     if(sessions.length>=10)return`${sessions.length} sessions done. Consistency is everything.`;
     return"Every session counts. You're building something real.";
   };
-  const getMilestones=(sessions,bodyLog)=>{
+  const getMilestones=(sessions,bodyLog,profile={})=>{
     const ms=[];
     const first=bodyLog[0];
     bodyLog.forEach(e=>{
       if(first&&e.weight<first.weight-0.9&&!ms.find(m=>m.id==="w1"))ms.push({id:"w1",icon:"weight",title:"First kilogram gone",sub:`${first.weight} → ${e.weight} kg — the first one is the hardest.`});
       if(first&&e.waist&&first.waist&&e.waist<first.waist-0.9&&!ms.find(m=>m.id==="ws1"))ms.push({id:"ws1",icon:"waist",title:"First centimetre off the waist",sub:`${first.waist} → ${e.waist} cm — the core work is showing.`});
-      if(e.bodyFat&&e.bodyFat<25&&!ms.find(m=>m.id==="bf25"))ms.push({id:"bf25",icon:"fire",title:"Under 25% body fat",sub:"Body composition shifting. Fat down, shape emerging."});
+      if(first&&e.weight!=null&&e.weight<=(profile?.goalWeight??45)&&!ms.find(m=>m.id==="goalW"))ms.push({id:"goalW",icon:"trophy",title:`Goal weight reached — ${e.weight} kg`,sub:"You hit your target. Now set a new one and keep going."});
+      if(first&&e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:"63 cm. You earned it. There's always a next level."});
       if(e.bodyFat&&e.bodyFat<23&&!ms.find(m=>m.id==="bf23"))ms.push({id:"bf23",icon:"fire",title:"Under 23% body fat",sub:"Visible toning territory. You're in it."});
     });
     const allExIds=SESSIONS.flatMap(s=>s.exercises.map(e=>e.id));
@@ -1016,7 +999,7 @@ export default function App(){
     const weekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
     const weekTypes=new Set(weekSess.map(s=>s.sessionId));
     const coach=getCoach(data.sessions,data.bodyLog);
-    const milestones=getMilestones(data.sessions,data.bodyLog);
+    const milestones=getMilestones(data.sessions,data.bodyLog,data.profile);
     const eta=getETA(data.sessions,data.profile,data.bodyLog);
     const isEmpty=!data.bodyLog.length&&!data.sessions.length;
 
@@ -1075,11 +1058,13 @@ export default function App(){
             <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:"—"}</span>
           </div>
           <div style={{height:6,background:P.roseLite,borderRadius:3,marginBottom:12}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
+          {wt!=null&&wt<=goalW&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginBottom:8,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
             <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Waist <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wsStart} → {goalWs} cm</span></span>
             <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:"—"}</span>
           </div>
           <div style={{height:6,background:P.roseLite,borderRadius:3}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
+          {ws!=null&&ws<=goalWs&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginTop:8,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
         </div>
 
         {/* PANEL 2 — This week: flexShrink:0 */}
@@ -1269,7 +1254,7 @@ export default function App(){
     if(!progressModal)return null;
     const close=()=>setProgressModal(null);
     if(progressModal==="chart")return<ChartPanel close={close}/>;
-    const milestones=getMilestones(data.sessions,data.bodyLog);
+    const milestones=getMilestones(data.sessions,data.bodyLog,data.profile);
     const weekAgo=Date.now()-7*86400000;
     const weekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
     const totalSets=weekSess.reduce((a,s)=>a+Object.values(s.comp||{}).reduce((b,v)=>b+(v||0),0),0);
@@ -1565,12 +1550,63 @@ export default function App(){
     </>);
   };
 
+  // ── PLAN MODAL ────────────────────────────────────────────────────────────
+  const PlanModal=()=>{
+    if(!planModal)return null;
+    const pl=planModal;
+    const SIcon=SessIcon[pl.id];
+    const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
+    const ds=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):0;
+    return(<div className="mo" onClick={()=>setPlanModal(null)}>
+      <div className="ms sl" onClick={e=>e.stopPropagation()} style={{maxHeight:"88dvh"}}>
+        {/* Header */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:30,height:30,borderRadius:8,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <SIcon c={pl.color} s={15}/>
+            </div>
+            <h3 className="serif" style={{fontSize:18,color:P.roseDeep,fontWeight:600}}>{pl.name}</h3>
+          </div>
+          <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+        </div>
+        <p style={{fontSize:10,color:P.roseMid,marginBottom:14}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+        {/* Exercise list */}
+        {ds>14&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"9px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:13}}>⚠️</span>
+          <p style={{fontSize:11,color:"#7a5c00",lineHeight:1.5}}>You were away {ds} days — weights reduced 10% to ease you back in. They'll climb again from here.</p>
+        </div>}
+        <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:14}}>
+          {pl.exercises.map((ex,i)=>{
+            const cw=getWeight(ex,data.sessions);
+            const pr=getPR(ex,data.sessions);
+            const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
+            // isDown: detect if this specific exercise had a 14+ day gap (getWeight handles reduction internally)
+            const exLastDone=data.sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined).slice(-1)[0];
+            const exDaysSince=exLastDone?Math.floor((Date.now()-new Date(exLastDone.date))/86400000):0;
+            const isDown=exDaysSince>14&&!ex.bw&&typeof cw==="number";
+            return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"9px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:8}}>
+              <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:14,textAlign:"right"}}>{i+1}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
+                <p style={{fontSize:9,color:P.roseMid}}>{ex.muscle}</p>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <p className="mono" style={{fontSize:11,color:P.roseDark}}>{ex.sets}×{ex.reps}</p>
+                <p style={{fontSize:10,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw}kg`}{isUp?" ↑":isDown?" ↓":""}</p>
+              </div>
+            </div>);
+          })}
+        </div>
+        <button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP" style={{fontSize:12,padding:"12px"}}>START {pl.name.toUpperCase()} →</button>
+      </div>
+    </div>);
+  };
+
   // ── RENDER ────────────────────────────────────────────────────────────────
   return(<>
     <style>{CSS}</style>
     <div className="app">
       {tab==="today"&&<Today/>}
-      {tab==="workout"&&<Workout/>}
       {tab==="progress"&&<Progress/>}
       {tab==="me"&&<Me/>}
       {modal&&<Modal/>}
@@ -1581,12 +1617,13 @@ export default function App(){
       {meModal==="goals"&&<GoalModal/>}
       {meModal==="resetWeights"&&<ResetModal/>}
       {meModal==="clearData"&&<ClearModal/>}
+      {planModal&&<PlanModal/>}
       <nav className="nav">
         <div className="nav-icons">
-        {[["today",IcHome,"Today"],["workout",IcTrain,"Train"],["progress",IcStats,"Stats"],["me",IcMe,"Me"]].map(([t,Ic,lb])=>(
+        {[["today",IcHome,"Today"],["progress",IcStats,"Stats"],["me",IcMe,"Me"]].map(([t,Ic,lb])=>(
           <button key={t} className="nb" onClick={()=>{
-            // If session active and switching away from workout tab — protect data
-            if(active&&sess&&t!=="workout"){
+            // If session active and navigating away — protect data
+            if(active&&sess&&t!=="today"){
               if(doneSets>0){
                 const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
                 if(choice){
