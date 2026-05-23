@@ -289,7 +289,7 @@ export default function App(){
   const[rest,setRest]=useState(null);
   const[swapModal,setSwapModal]=useState(null);
   const[swapSelected,setSwapSelected]=useState(null);
-  const[logModal,setLogModal]=useState(false);
+  const[logModal,setLogModal]=useState<string|null>(null);
   const[progressModal,setProgressModal]=useState(null); // "chart"|"week"|"strength"|"milestones"
   const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"
   const[planModal,setPlanModal]=useState(null); // session plan preview modal
@@ -520,7 +520,7 @@ export default function App(){
             const wsDelta=last?(ws-wsStart).toFixed(1):null;
             return[[IcWeight,`${wt} kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws} cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
               <div key={l} style={{flex:1,background:P.white,borderRadius:14,padding:"12px 10px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",cursor:l!=="Sessions"?"pointer":"default",textAlign:"center"}}
-                onClick={()=>l!=="Sessions"&&setLogModal(true)}>
+                onClick={()=>l!=="Sessions"&&setLogModal(l==="Weight"?"Weight":l==="Waist"?"Waist":"Weight")}>
                 <div style={{display:"flex",justifyContent:"center",marginBottom:5}}><Ic c={P.roseDark} s={16}/></div>
                 <div className="mono" style={{fontSize:16,color:P.roseDeep,fontWeight:600,lineHeight:1,marginBottom:3}}>{v}{delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600,marginLeft:3}}>{delta}</span>}</div>
                 <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:500}}>{l}</div>
@@ -905,7 +905,7 @@ export default function App(){
               {data.bodyLog.length?`Last logged ${Math.floor((Date.now()-new Date(data.bodyLog[data.bodyLog.length-1].date))/86400000)||0}d ago`:"No stats logged yet"}
             </p>
           </div>
-          <button onClick={()=>setLogModal(true)} style={{background:P.roseDark,border:"none",borderRadius:20,padding:"8px 16px",fontSize:11,color:"white",cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em",flexShrink:0}}>Log stats</button>
+          <button onClick={()=>setLogModal("Weight")} style={{background:P.roseDark,border:"none",borderRadius:20,padding:"8px 16px",fontSize:11,color:"white",cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em",flexShrink:0}}>Log stats</button>
         </div>
         <button className="btnP" style={{flexShrink:0}} onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);startTimeRef.current=null;finishingRef.current=false;lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
       </div>
@@ -1057,7 +1057,7 @@ export default function App(){
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",margin:"16px 0 6px"}}>Your progress</p>
         <h2 className="serif" style={{fontSize:28,color:"white",fontWeight:400,lineHeight:1.2,marginBottom:10}}>Your journey<br/><em style={{color:P.roseHero}}>starts here.</em></h2>
         <p style={{fontSize:12,color:P.roseMid,lineHeight:1.7,marginBottom:28}}>Log your first body stats and complete your first session to unlock charts, milestones and your coach insights.</p>
-        <button className="btnP" onClick={()=>setLogModal(true)}>+ Log today's stats</button>
+        <button className="btnP" onClick={()=>setLogModal("Weight")}>+ Log today's stats</button>
         <button onClick={()=>setTab("today")} style={{background:"none",border:"none",color:P.roseMid,fontSize:12,cursor:"pointer",fontFamily:"'DM Sans'",marginTop:12}}>Choose a session →</button>
       </div>
     </div>);
@@ -1164,7 +1164,7 @@ export default function App(){
 
         {/* PANEL 4 — Log + Milestone */}
         <div style={{display:"flex",gap:8,flexShrink:0,height:52,alignItems:"stretch"}}>
-          <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",minWidth:0,flexShrink:0,fontSize:13,letterSpacing:"0.05em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
+          <button onClick={()=>setLogModal("Weight")} style={{flex:"1.4 1 0",minWidth:0,flexShrink:0,fontSize:13,letterSpacing:"0.05em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
             onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")} onTouchCancel={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
           </button>
@@ -1191,7 +1191,7 @@ export default function App(){
     const[mm,setMm]=useState(last?.muscleMass?.toString()||"");
     const[ma,setMa]=useState(last?.metabolicAge?.toString()||"");
     const[showMore,setShowMore]=useState(false);
-    const[activeField,setActiveField]=useState(null);
+    const[activeField,setActiveField]=useState<string|null>(logModal||null);
     const daysSince=last?Math.floor((Date.now()-new Date(last.date))/86400000):null;
     const wtDelta=wt&&last?.weight?(parseFloat(wt)-last.weight).toFixed(1):null;
     const wsDelta=ws&&last?.waist?(parseFloat(ws)-last.waist).toFixed(1):null;
@@ -1200,14 +1200,14 @@ export default function App(){
     const save=()=>{
       if(!canSave)return;
       logBodyEntry({...(wt&&{weight:parseFloat(wt)}),...(ws&&{waist:parseFloat(ws)}),...(bf&&{bodyFat:parseFloat(bf)}),...(mm&&{muscleMass:parseFloat(mm)}),...(ma&&{metabolicAge:parseFloat(ma)})});
-      setLogModal(false);
+      setLogModal(null);
     };
-    return(<div className="mo" onClick={()=>setLogModal(false)}>
+    return(<div className="mo" onClick={()=>setLogModal(null)}>
       <div className="ms sl" onClick={e=>e.stopPropagation()}>
         <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
           <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>Today's numbers</h3>
-          <button onClick={()=>setLogModal(false)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+          <button onClick={()=>setLogModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
         <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:16}}>
           {daysSince===0?"Logged today — update if things changed":daysSince===1?"Last logged yesterday":daysSince?`Last logged ${daysSince} days ago`:"First entry — set your baseline"}
@@ -1294,7 +1294,7 @@ export default function App(){
         ))}
       </div>}
       {coreLine&&<div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 12px 12px 0",padding:"10px 14px",marginBottom:14}}><p style={{fontSize:11,color:P.roseDeep,fontStyle:"italic",lineHeight:1.6}}>{coreLine}</p></div>}
-      <button className="btnP" onClick={()=>{close();setLogModal(true);}}>+ Log today's stats</button>
+      <button className="btnP" onClick={()=>{close();setLogModal("Weight");}}>+ Log today's stats</button>
     </div></div>);
   };
 
@@ -1697,7 +1697,7 @@ export default function App(){
                 startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);
               }
             }
-            setTab(t);setLogModal(false);setProgressModal(null);setMeModal(null);
+            setTab(t);setLogModal(null);setProgressModal(null);setMeModal(null);
           }}>
             <div style={{width:30,height:30,borderRadius:9,background:tab===t?P.roseLite:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.18s"}}>
               <Ic c={tab===t?P.roseDark:P.roseMid} s={24}/>
