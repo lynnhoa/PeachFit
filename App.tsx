@@ -749,12 +749,15 @@ export default function App(){
         <ExDots/>
         <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginTop:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
       </div>
-      {/* Main content — flex fills remaining space */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"12px 24px"}}>
+      {/* Main content — flex fills remaining space, no justifyContent:center so layout is top-anchored */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 24px",overflow:"hidden"}}>
         {/* Exercise identity */}
         <div style={{textAlign:"center",marginBottom:16}}>
-          {isUp&&<div style={{marginBottom:7}}><span style={{display:"inline-flex",alignItems:"center",gap:4,background:P.rosePrimary,color:"white",fontSize:8,letterSpacing:"0.14em",padding:"3px 11px",borderRadius:20,textTransform:"uppercase"}}><IcArrowUp c="white" s={9}/>Weight up today</span></div>}
-          {sess?.swapped?.[ex.id]&&<div style={{marginBottom:7}}><span style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(255,255,255,0.1)",color:P.roseHero,fontSize:8,letterSpacing:"0.14em",padding:"3px 11px",borderRadius:20,textTransform:"uppercase"}}><IcSwap c={P.roseHero} s={9}/>swapped</span></div>}
+          {/* Badge row — always 24px tall so layout never shifts when badges appear/disappear */}
+          <div style={{height:24,display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:7}}>
+            {isUp&&<span style={{display:"inline-flex",alignItems:"center",gap:4,background:P.rosePrimary,color:"white",fontSize:8,letterSpacing:"0.14em",padding:"3px 11px",borderRadius:20,textTransform:"uppercase"}}><IcArrowUp c="white" s={9}/>Weight up today</span>}
+            {sess?.swapped?.[ex.id]&&<span style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(255,255,255,0.1)",color:P.roseHero,fontSize:8,letterSpacing:"0.14em",padding:"3px 11px",borderRadius:20,textTransform:"uppercase"}}><IcSwap c={P.roseHero} s={9}/>swapped</span>}
+          </div>
           <h2 className="serif" style={{fontSize:24,color:"white",fontWeight:500,lineHeight:1.2,marginBottom:4}}>{sess?.swapped?.[ex.id]||ex.name}</h2>
           <p style={{fontSize:10,color:P.roseMid,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:12}}>{ex.muscle}</p>
           {/* Weight adjuster */}
@@ -785,23 +788,25 @@ export default function App(){
           <p style={{fontSize:10,color:P.roseMid,letterSpacing:"0.1em",textTransform:"uppercase",marginBottom:12}}>{setsCompletedForEx<ex.sets?`Set ${currentSet+1} of ${ex.sets}`:`All ${ex.sets} sets done`}</p>
           <SetDots/>
         </div>
-        {/* Tip */}
-        <div style={{background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px",marginBottom:14,borderLeft:`2px solid ${P.rosePrimary}`}}>
+        {/* Tip — fixed 3-line min-height so variable text length never shifts buttons below */}
+        <div style={{background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px",marginBottom:14,borderLeft:`2px solid ${P.rosePrimary}`,minHeight:66}}>
           <p style={{fontSize:9,color:P.roseMid,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Tip</p>
           <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",lineHeight:1.6,fontStyle:"italic"}}>{ex.tip}</p>
         </div>
-        {/* CTA */}
-        {setsCompletedForEx<ex.sets?(
-          <button onClick={()=>completeCurrentSet(ex,ei)} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
-          </button>
-        ):(
-          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n}));else setSess(p=>({...p,phase:"done"}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,marginBottom:10,width:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {ei+1<active.exercises.length?`Next: ${active.exercises[ei+1].name} →`:"Finish Session"}
-          </button>
-        )}
+        {/* CTA — unified wrapper div keeps button zone fixed height so secondary row never jumps */}
+        <div style={{marginBottom:10,height:52,flexShrink:0}}>
+          {setsCompletedForEx<ex.sets?(
+            <button onClick={()=>completeCurrentSet(ex,ei)} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+              <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
+            </button>
+          ):(
+            <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n}));else setSess(p=>({...p,phase:"done"}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              {ei+1<active.exercises.length?`Next: ${active.exercises[ei+1].name} →`:"Finish Session"}
+            </button>
+          )}
+        </div>
         {/* Secondary actions — Swap always rendered to prevent How-to button resizing */}
-        <div style={{display:"flex",gap:8}}>
+        <div style={{display:"flex",gap:8,flexShrink:0}}>
           <button onClick={()=>setModal(ex)} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <IcInfo c={P.roseMid} s={13}/> How to
           </button>
@@ -810,8 +815,8 @@ export default function App(){
           </button>
         </div>
       </div>
-      {/* Bottom time/kcal — only after 1min */}
-      {elapsed>=60&&(<div style={{padding:"0 24px calc(12px + env(safe-area-inset-bottom,0px))",display:"flex",justifyContent:"center",gap:24,flexShrink:0}}>
+      {/* Bottom time/kcal — always rendered, invisible until 60s so it never pushes layout up */}
+      <div style={{padding:"0 24px calc(12px + env(safe-area-inset-bottom,0px))",display:"flex",justifyContent:"center",gap:24,flexShrink:0,opacity:elapsed>=60?1:0,transition:"opacity 0.6s ease"}}>
         <div style={{textAlign:"center",display:"flex",alignItems:"center",gap:5}}>
           <IcClock c="rgba(255,255,255,0.25)" s={12}/>
           <span className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)",fontVariantNumeric:"tabular-nums"}}>{fmt(elapsed)}</span>
@@ -821,7 +826,7 @@ export default function App(){
           <IcFire c="rgba(255,255,255,0.25)" s={12}/>
           <span className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)"}}>{liveCal} kcal</span>
         </div>
-      </div>)}
+      </div>
     </div>);
   };
 
