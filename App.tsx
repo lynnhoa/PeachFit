@@ -119,10 +119,10 @@ const ld=()=>{
 const sv=(d)=>{try{localStorage.setItem(KEY,JSON.stringify(d));}catch{}};
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
-function getWeight(ex,sessions,_daysSince=0){
+function getWeight(ex,sessions,sessionId=null){
   if(ex.bw)return"BW";
-  // Only sessions that include this exercise (same session type)
-  const hist=sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined);
+  // Only sessions that include this exercise AND match the session type
+  const hist=sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined&&(!sessionId||s.sessionId===sessionId));
   if(!hist.length)return ex.kg;
   const last=hist[hist.length-1];
   const w=last.weights[ex.id];
@@ -297,6 +297,7 @@ export default function App(){
   const restTotalRef=useRef(null);
   const restRafRef=useRef(null);
   const lastRestSecRef=useRef(-1);
+  const finishingRef=useRef(false);
 
   // PWA / native meta injection
   useEffect(()=>{
@@ -319,7 +320,8 @@ export default function App(){
   },[]);
   const startTimer=useCallback(()=>{
     if(rafRef.current)return;
-    startTimeRef.current=Date.now();lastSecRef.current=-1;
+    if(!startTimeRef.current)startTimeRef.current=Date.now();
+    lastSecRef.current=-1;
     rafRef.current=requestAnimationFrame(tick);
   },[tick]);
   const stopTimer=useCallback(()=>{
@@ -359,7 +361,8 @@ export default function App(){
   const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 
   const logBodyEntry=entry=>{
-    const newLog=[...data.bodyLog,{date:new Date().toISOString(),...entry}];
+    const today=new Date().toISOString().slice(0,10);
+    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),{date:new Date().toISOString(),...entry}];
     let profile={...data.profile};
     // Lock startWeight/startWaist — capture whenever still null, from any early entry
     if(entry.weight&&!profile.startWeight)profile.startWeight=entry.weight;
@@ -369,7 +372,7 @@ export default function App(){
 
   const startSession=pl=>{
     const initWeights={};
-    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions);});
+    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions,pl.id);});
     setActive(pl);setElapsed(0);lastSecRef.current=-1;
     setSess({comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
     setSummary(null);setRest(null);setTab("today");
@@ -377,13 +380,13 @@ export default function App(){
 
   const completeCurrentSet=(ex,ei)=>{
     setSess(prev=>{
-      const si=prev.currentSet;const k=`${ei}-${si}`;
+      const si=prev.currentSet;const k=`${ex.id}-${si}`;
       const comp={...prev.comp,[k]:true};
-      const cnt=Object.keys(comp).filter(x=>x.startsWith(`${ei}-`)&&comp[x]).length;
+      const cnt=Object.keys(comp).filter(x=>x.startsWith(`${ex.id}-`)&&comp[x]).length;
       // Use the weight Lynn has set (pre-populated or manually adjusted) — never recalculate mid-session
       const weights={...prev.weights};
       if(!ex.bw&&weights[ex.id]==null){
-        weights[ex.id]=getWeight(ex,data.sessions);
+        weights[ex.id]=getWeight(ex,data.sessions,active?.id);
       }
       const csets={...prev.csets,[ex.id]:cnt};
       const allDone=cnt>=ex.sets;
@@ -414,25 +417,29 @@ export default function App(){
 
   const saveSession=()=>{
     if(!active||!sess)return;
-    const mins=Math.max(1,Math.round(elapsed/60));
+    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsed;
+    const mins=Math.max(1,Math.round(trueElapsed/60));
     const cal=kcal(active.met,mins);
     const numericWeights={};
     active.exercises.forEach(ex=>{
       if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
     });
-    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:elapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
+    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:trueElapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
     persist({...data,sessions:[...data.sessions,rec]});
   };
 
   const finishSession=()=>{
-    const mins=Math.max(1,Math.round(elapsed/60));
+    if(finishingRef.current)return;
+    finishingRef.current=true;
+    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsed;
+    const mins=Math.max(1,Math.round(trueElapsed/60));
     const cal=kcal(active.met,mins);
     const numericWeights={};
     active.exercises.forEach(ex=>{
       if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
     });
     const prs=active.exercises.filter(ex=>!ex.bw&&numericWeights[ex.id]).filter(ex=>{const pr=getPR(ex,data.sessions);return!pr||numericWeights[ex.id]>pr;}).map(ex=>ex.name);
-    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:elapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
+    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:trueElapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
     persist({...data,sessions:[...data.sessions,rec]});
     setSummary({...rec,prs,csets:sess.csets});
     stopTimer();setRest(null);
@@ -637,16 +644,16 @@ export default function App(){
     const phase=sess.phase??"active";
     const prog=totSets>0?doneSets/totSets:0;
     // cw = what Lynn will actually lift (from sess.weights, editable). Falls back to getWeight if not set.
-    const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,data.sessions))):0;
+    const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,data.sessions,active?.id))):0;
     const pr=ex?getPR(ex,data.sessions):null;
     const isUp=ex&&!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
-    const setsCompletedForEx=ex?Object.keys(sess.comp).filter(k=>k.startsWith(`${ei}-`)&&sess.comp[k]).length:0;
+    const setsCompletedForEx=ex?Object.keys(sess.comp).filter(k=>k.startsWith(`${ex.id}-`)&&sess.comp[k]).length:0;
     const SIcon=SessIcon[active.id];
 
     const ExDots=()=>(
       <div style={{display:"flex",gap:4,alignItems:"center",justifyContent:"center"}}>
-        {active.exercises.map((_,i)=>{
-          const done=Object.keys(sess.comp).filter(k=>k.startsWith(`${i}-`)&&sess.comp[k]).length>=active.exercises[i].sets;
+        {active.exercises.map((exDot,i)=>{
+          const done=Object.keys(sess.comp).filter(k=>k.startsWith(`${exDot.id}-`)&&sess.comp[k]).length>=exDot.sets;
           const cur=i===ei;
           return(<div key={i} style={{width:cur?24:6,height:6,borderRadius:3,background:done?P.roseDark:cur?P.rosePrimary:"rgba(255,255,255,0.18)",transition:"all 0.3s ease",flexShrink:0}}/>);
         })}
@@ -656,7 +663,7 @@ export default function App(){
     const SetDots=()=>(
       <div style={{display:"flex",gap:10,justifyContent:"center"}}>
         {Array.from({length:ex.sets},(_,s)=>{
-          const done=sess.comp[`${ei}-${s}`];
+          const done=sess.comp[`${ex.id}-${s}`];
           const cur=s===currentSet&&phase==="active";
           return(<div key={s} style={{width:38,height:38,borderRadius:"50%",border:`1.5px solid ${done?P.roseDark:cur?P.rosePrimary:"rgba(255,255,255,0.25)"}`,background:done?P.roseDark:cur?"rgba(242,160,176,0.12)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.22s ease",boxShadow:cur?`0 0 0 3px rgba(242,160,176,0.22)`:"none"}}>
             {done?<IcCheck c="white" s={14}/>:<span style={{fontSize:13,color:done?"white":cur?P.roseHero:"rgba(255,255,255,0.35)",fontFamily:"'Tenor Sans'"}}>{s+1}</span>}
@@ -665,7 +672,7 @@ export default function App(){
       </div>
     );
 
-    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);};
+    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);};
     const stopAndBack=()=>{
       if(doneSets>0){
         const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
@@ -720,7 +727,7 @@ export default function App(){
         <h2 className="serif" style={{fontSize:30,color:"white",fontWeight:400,marginBottom:8}}>Incredible,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
         <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>Every set complete.</p>
         <button className="btnP" style={{marginBottom:12}} onClick={finishSession}>FINISH SESSION</button>
-        <button onClick={()=>setSess(prev=>({...prev,phase:"active",currentExIdx:0,currentSet:0}))} style={{background:"none",border:"none",color:P.roseMid,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'"}}>← Back to exercises</button>
+        <button onClick={()=>{finishingRef.current=false;setSess(prev=>({...prev,phase:"active",currentExIdx:0,currentSet:0,comp:{},csets:{}}));}} style={{background:"none",border:"none",color:P.roseMid,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'"}}>← Back to exercises</button>
       </div>);
     }
 
@@ -872,7 +879,7 @@ export default function App(){
         </div>
         <button onClick={()=>setLogModal(true)} style={{background:"none",border:`1px solid ${P.roseDark}`,borderRadius:20,padding:"4px 12px",fontSize:10,color:P.roseDark,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.05em"}}>Log stats</button>
       </div>
-      <button className="btnP" onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
+      <button className="btnP" onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);startTimeRef.current=null;finishingRef.current=false;lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
     </div>
   </div>);
   };
@@ -1429,7 +1436,7 @@ export default function App(){
     <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center"}}><IcRefresh c={P.roseDark} s={20}/></div></div>
     <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Reset weights?</h3>
     <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>Resets all exercise weights to starting values. Session history, body stats and milestones are kept.</p>
-    <button onClick={()=>{persist({...data,sessions:data.sessions.map(s=>({...s,weights:{}}))});setMeModal(null);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESET WEIGHTS</button>
+    <button onClick={()=>{persist({...data,sessions:data.sessions.map(s=>({...s,weights:{},comp:{}}))});setMeModal(null);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESET WEIGHTS</button>
     <button onClick={()=>setMeModal(null)} className="btnG" style={{width:"100%"}}>CANCEL</button>
   </div></div>);
 
@@ -1577,7 +1584,7 @@ export default function App(){
         </div>}
         <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:14}}>
           {pl.exercises.map((ex,i)=>{
-            const cw=getWeight(ex,data.sessions);
+            const cw=getWeight(ex,data.sessions,pl.id);
             const pr=getPR(ex,data.sessions);
             const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
             // isDown: detect if this specific exercise had a 14+ day gap (getWeight handles reduction internally)
@@ -1629,14 +1636,14 @@ export default function App(){
                 if(choice){
                   saveSession();
                   stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}
-                  setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);
+                  startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);
                 } else {
                   stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}
-                  setActive(null);setSess(null);setElapsed(0);setRest(null);
+                  startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);
                 }
               } else {
                 stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}
-                setActive(null);setSess(null);setElapsed(0);setRest(null);
+                startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);
               }
             }
             setTab(t);setLogModal(false);setProgressModal(null);setMeModal(null);
