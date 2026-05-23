@@ -1502,8 +1502,8 @@ export default function App(){
           </div>
           <div style={{display:"flex",gap:7}}>
             {[["Sessions",`${data.sessions.length}`],["Last 7 days",`${thisWeekSess.length}/3`],(()=>{const pr=getProteinHitRate(data.nutritionLog);return["Protein",pr?`${pr.hits}/${pr.total}`:"—"];})()].map(([l,v])=>(
-              <div key={l} style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"7px 12px",flexShrink:0}}>
-                <span className="mono" style={{fontSize:14,color:"white",display:"block",lineHeight:1.1}}>{v}</span>
+              <div key={l} style={{flex:1,background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                <span className="mono" style={{fontSize:14,color:"white",lineHeight:1.1}}>{v}</span>
                 <span style={{fontSize:9,color:P.roseMid,letterSpacing:"0.04em"}}>{l}</span>
               </div>
             ))}
@@ -1516,10 +1516,10 @@ export default function App(){
           {/* PANEL 1 — Goals */}
           <div onClick={()=>setMeModal("goals")} style={{background:P.white,borderRadius:14,padding:"14px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
-              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goals</p>
+              <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goals</p>
               <div style={{display:"flex",alignItems:"center",gap:4}}>
                 <IcEdit c={P.roseMid} s={12}/>
-                <span style={{fontSize:9,color:P.roseMid}}>tap to edit</span>
+                <span style={{fontSize:10,color:P.roseMid}}>tap to edit</span>
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
@@ -1536,7 +1536,7 @@ export default function App(){
           {/* PANEL 2 — Programme */}
           <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
             <div style={{paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
-              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Programme</p>
+              <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Programme</p>
             </div>
             <div style={{display:"flex",gap:8,marginBottom:12}}>
               {SESSIONS.map(s=>{const Ic=SessIcon[s.id];return(
@@ -1549,8 +1549,8 @@ export default function App(){
             <div style={{display:"flex",gap:8}}>
               {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["No fixed days","train when ready"],[`${SESSIONS.length} sessions`,"full coverage"]].map(([val,sub])=>(
                 <div key={val} style={{flex:1}}>
-                  <p style={{fontSize:11,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p>
-                  <p style={{fontSize:9,color:P.roseMid,lineHeight:1.4,marginTop:2}}>{sub}</p>
+                  <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p>
+                  <p style={{fontSize:11,color:P.roseMid,lineHeight:1.4,marginTop:2}}>{sub}</p>
                 </div>
               ))}
             </div>
@@ -1559,18 +1559,18 @@ export default function App(){
           {/* PANEL 3 — Data */}
           <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
             <div style={{paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
-              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Data</p>
+              <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Data</p>
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>setMeModal("resetWeights")} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
                 <IcRefresh c={P.roseDark} s={16}/>
-                <p style={{fontSize:10,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Reset weights</p>
-                <p style={{fontSize:9,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>after a long break</p>
+                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Reset weights</p>
+                <p style={{fontSize:11,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>after a long break</p>
               </button>
-              <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#fff5f5",border:"1px solid #ffc8cd",borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
-                <IcTrash c="#c0392b" s={16}/>
-                <p style={{fontSize:10,color:"#c0392b",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
-                <p style={{fontSize:9,color:"#e57373",textAlign:"center",lineHeight:1.3}}>start fresh</p>
+              <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#f0f7f4",border:"1px solid #a8d4c2",borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <IcTrash c="#1e6b50" s={16}/>
+                <p style={{fontSize:12,color:"#1e6b50",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
+                <p style={{fontSize:11,color:"#2d9970",textAlign:"center",lineHeight:1.3}}>start fresh</p>
               </button>
             </div>
           </div>
