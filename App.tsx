@@ -282,6 +282,7 @@ export default function App(){
     return loaded;
   });
   const[active,setActive]=useState(null);
+  const activeRef=useRef(null);
   const[sess,setSess]=useState(null);
   const[modal,setModal]=useState(null);
   const[summary,setSummary]=useState(null);
@@ -293,6 +294,9 @@ export default function App(){
   const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"
   const[planModal,setPlanModal]=useState(null); // session plan preview modal
   const[elapsed,setElapsed]=useState(0);
+  const elapsedRef=useRef(0);
+  const timerDisplayRef=useRef(null);
+  const kcalDisplayRef=useRef(null);
   const startTimeRef=useRef(null);
   const rafRef=useRef(null);
   const lastSecRef=useRef(-1);
@@ -318,7 +322,16 @@ export default function App(){
 
   const tick=useCallback(()=>{
     const sec=Math.floor((Date.now()-startTimeRef.current)/1000);
-    if(sec!==lastSecRef.current){lastSecRef.current=sec;setElapsed(sec);}
+    if(sec!==lastSecRef.current){
+      lastSecRef.current=sec;
+      elapsedRef.current=sec;
+      // Update timer display directly — no setState, no re-render
+      const fmtSec=(s:number)=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+      if(timerDisplayRef.current)timerDisplayRef.current.textContent=fmtSec(sec);
+      if(kcalDisplayRef.current&&activeRef.current)kcalDisplayRef.current.textContent=String(kcal(activeRef.current.met,Math.max(1,Math.round(sec/60))));
+      // Only setElapsed at 60s boundary to toggle timer bar visibility (one-time re-render)
+      if(sec===60)setElapsed(60);
+    }
     rafRef.current=requestAnimationFrame(tick);
   },[]);
   const startTimer=useCallback(()=>{
@@ -330,6 +343,7 @@ export default function App(){
   const stopTimer=useCallback(()=>{
     if(rafRef.current){cancelAnimationFrame(rafRef.current);rafRef.current=null;}
   },[]);
+  useEffect(()=>{activeRef.current=active;},[active]);
   useEffect(()=>{if(sess&&!summary)startTimer();else stopTimer();return stopTimer;},[!!sess,!!summary]);
 
   const restTick=useCallback(()=>{
@@ -377,7 +391,7 @@ export default function App(){
     const initWeights={};
     pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions,pl.id);});
     startTimeRef.current=null;finishingRef.current=false;
-    setActive(pl);setElapsed(0);lastSecRef.current=-1;
+    setActive(pl);setElapsed(0);elapsedRef.current=0;lastSecRef.current=-1;
     setSess({comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
     setSummary(null);setRest(null);setTab("today");
   };
@@ -421,7 +435,7 @@ export default function App(){
 
   const saveSession=()=>{
     if(!active||!sess)return;
-    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsed;
+    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsedRef.current;
     const mins=Math.max(1,Math.round(trueElapsed/60));
     const cal=kcal(active.met,mins);
     const numericWeights={};
@@ -435,7 +449,7 @@ export default function App(){
   const finishSession=()=>{
     if(finishingRef.current)return;
     finishingRef.current=true;
-    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsed;
+    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):elapsedRef.current;
     const mins=Math.max(1,Math.round(trueElapsed/60));
     const cal=kcal(active.met,mins);
     const numericWeights={};
@@ -451,7 +465,6 @@ export default function App(){
 
   const totSets=active?active.exercises.reduce((a,e)=>a+e.sets,0):0;
   const doneSets=sess?Object.values(sess.comp).filter(Boolean).length:0;
-  const liveCal=active?kcal(active.met,Math.max(1,Math.round(elapsed/60))):0;
   const weekAgo=Date.now()-7*86400000;
   const thisWeekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
 
@@ -676,7 +689,7 @@ export default function App(){
       </div>
     );
 
-    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);};
+    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setElapsed(0);elapsedRef.current=0;setRest(null);setSummary(null);};
     const stopAndBack=()=>{
       if(doneSets>0){
         const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
@@ -819,12 +832,13 @@ export default function App(){
       <div style={{padding:"0 24px calc(12px + env(safe-area-inset-bottom,0px))",display:"flex",justifyContent:"center",gap:24,flexShrink:0,opacity:elapsed>=60?1:0,transition:"opacity 0.6s ease"}}>
         <div style={{textAlign:"center",display:"flex",alignItems:"center",gap:5}}>
           <IcClock c="rgba(255,255,255,0.25)" s={12}/>
-          <span className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)",fontVariantNumeric:"tabular-nums"}}>{fmt(elapsed)}</span>
+          <span ref={timerDisplayRef} className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)",fontVariantNumeric:"tabular-nums"}}>00:00</span>
         </div>
         <div style={{width:1,background:"rgba(255,255,255,0.08)"}}/>
         <div style={{textAlign:"center",display:"flex",alignItems:"center",gap:5}}>
           <IcFire c="rgba(255,255,255,0.25)" s={12}/>
-          <span className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)"}}>{liveCal} kcal</span>
+          <span ref={kcalDisplayRef} className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)"}}>0</span>
+          <span style={{fontSize:13,color:"rgba(255,255,255,0.3)"}}> kcal</span>
         </div>
       </div>
     </div>);
