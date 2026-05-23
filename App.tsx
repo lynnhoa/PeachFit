@@ -796,18 +796,18 @@ export default function App(){
             <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
           </button>
         ):(
-          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n}));else setSess(p=>({...p,phase:"done"}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,marginBottom:10}}>
+          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n}));else setSess(p=>({...p,phase:"done"}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,marginBottom:10,width:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
             {ei+1<active.exercises.length?`Next: ${active.exercises[ei+1].name} →`:"Finish Session"}
           </button>
         )}
-        {/* Secondary actions */}
+        {/* Secondary actions — Swap always rendered to prevent How-to button resizing */}
         <div style={{display:"flex",gap:8}}>
           <button onClick={()=>setModal(ex)} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <IcInfo c={P.roseMid} s={13}/> How to
           </button>
-          {ex.swaps?.length>0&&(<button onClick={()=>{setSwapSelected(null);setSwapModal(ex);}} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+          <button onClick={()=>{if(ex.swaps?.length>0){setSwapSelected(null);setSwapModal(ex);}}} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:ex.swaps?.length>0?"pointer":"default",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:ex.swaps?.length>0?1:0,pointerEvents:ex.swaps?.length>0?"auto":"none"}}>
             <IcSwap c={P.roseMid} s={13}/> Swap
-          </button>)}
+          </button>
         </div>
       </div>
       {/* Bottom time/kcal — only after 1min */}
