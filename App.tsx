@@ -463,7 +463,7 @@ export default function App(){
     };
     return(<div className="screen">
       {/* Header */}
-      <div style={{background:P.roseDeep,padding:"72px 20px 32px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{background:P.roseDeep,padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
@@ -632,7 +632,7 @@ export default function App(){
         return tS<tA?s:a;
       },SESSIONS[0]);
       return(<div className="screen" style={{background:P.bg}}>
-        <div style={{background:P.roseDeep,padding:"72px 20px 32px",flexShrink:0}}>
+        <div style={{background:P.roseDeep,padding:"100px 20px 40px",flexShrink:0}}>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Train</p>
           <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
         </div>
@@ -1070,7 +1070,7 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER — dark, coach sentence leads ── */}
-      <div style={{padding:"72px 18px 32px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"100px 18px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-44,right:-44,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
         {/* Coach sentence — Playfair, plain white + hero highlights */}
@@ -1515,7 +1515,7 @@ export default function App(){
 
     return(<>
       <div className="screen-full" style={{background:P.roseDeep}}>
-        <div style={{padding:"72px 18px 32px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{padding:"100px 18px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
           <div style={{position:"absolute",top:-50,right:-50,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
           <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
           <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
