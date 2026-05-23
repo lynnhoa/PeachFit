@@ -1625,24 +1625,11 @@ export default function App(){
   const ProfileModal=()=>{
     const profile=data.profile||DEFAULT_PROFILE;
     const[nm,setNm]=useState(profile.name||"");
-    const[sw,setSw]=useState((data.bodyLog[0]?.weight??"").toString());
-    const[ss,setSs]=useState((data.bodyLog[0]?.waist??"").toString());
     const[af,setAf]=useState(null);
     const canSave=!!nm.trim();
     const save=()=>{
       if(!canSave)return;
-      // Update name in profile; update start values directly in bodyLog[0]
-      let newBodyLog=[...data.bodyLog];
-      if(newBodyLog.length>0){
-        const first={...newBodyLog[0]};
-        if(sw)first.weight=parseFloat(sw);
-        if(ss)first.waist=parseFloat(ss);
-        newBodyLog=[first,...newBodyLog.slice(1)];
-      } else if(sw||ss){
-        // No entries yet — create a synthetic first entry as baseline
-        newBodyLog=[{date:new Date().toISOString(),...(sw&&{weight:parseFloat(sw)}),...(ss&&{waist:parseFloat(ss)})}];
-      }
-      persist({...data,profile:{...profile,name:nm.trim()},bodyLog:newBodyLog});
+      persist({...data,profile:{...profile,name:nm.trim()}});
       setMeModal(null);
     };
     return(<div className="mo" onClick={()=>setMeModal(null)}><div className="ms sl" onClick={e=>e.stopPropagation()}>
@@ -1651,27 +1638,14 @@ export default function App(){
         <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>Edit profile</h3>
         <button onClick={()=>setMeModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
-      <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:18,lineHeight:1.5}}>Starting stats set your baseline for all progress calculations.</p>
-      {/* Name field */}
-      <div onClick={()=>setAf("name")} style={{background:af==="name"?P.white:P.bg,border:`1.5px solid ${af==="name"?P.roseDark:P.roseLite}`,borderRadius:14,padding:"12px 14px",marginBottom:10,cursor:"pointer",transition:"all 0.15s"}}>
+      <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:18,lineHeight:1.5}}>Your name appears across the app.</p>
+      <div onClick={()=>setAf("name")} style={{background:af==="name"?P.white:P.bg,border:`1.5px solid ${af==="name"?P.roseDark:P.roseLite}`,borderRadius:14,padding:"12px 14px",marginBottom:20,cursor:"pointer",transition:"all 0.15s"}}>
         <p style={{fontSize:8,letterSpacing:"0.14em",color:af==="name"?P.roseDark:P.roseMid,textTransform:"uppercase",marginBottom:4}}>Name</p>
         {af==="name"
           ?<input autoFocus type="text" value={nm} onChange={e=>setNm(e.target.value)} style={{width:"100%",border:"none",background:"transparent",fontSize:20,fontFamily:"'Playfair Display',serif",color:P.roseDeep,outline:"none"}}/>
           :<p style={{fontSize:20,fontFamily:"'Playfair Display',serif",color:nm?P.roseDeep:P.roseMid}}>{nm||"—"}</p>}
       </div>
-      {/* Starting stats */}
-      <div style={{display:"flex",gap:8,marginBottom:20}}>
-        {[["Start weight","kg",sw,setSw],["Start waist","cm",ss,setSs]].map(([label,unit,val,setVal])=>{
-          const isAf=af===label;
-          return(<div key={label} onClick={()=>setAf(label)} style={{flex:1,background:isAf?P.white:P.bg,border:`1.5px solid ${isAf?P.roseDark:P.roseLite}`,borderRadius:14,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s"}}>
-            <p style={{fontSize:8,letterSpacing:"0.14em",color:isAf?P.roseDark:P.roseMid,textTransform:"uppercase",marginBottom:6}}>{label}</p>
-            {isAf?<input autoFocus type="number" step="0.1" value={val} onChange={e=>setVal(e.target.value)} style={{width:"100%",border:"none",background:"transparent",textAlign:"center",fontSize:28,fontFamily:"'Tenor Sans',sans-serif",color:P.roseDeep,outline:"none"}}/>
-              :<p className="mono" style={{fontSize:28,color:val?P.roseDeep:P.roseMid,lineHeight:1}}>{val||"—"}</p>}
-            <p style={{fontSize:9,color:P.roseMid,marginTop:4}}>{unit}</p>
-          </div>);
-        })}
-      </div>
-      <button onClick={save} className="btnP" style={{opacity:canSave?1:0.4,cursor:canSave?"pointer":"not-allowed"}}>SAVE PROFILE</button>
+      <button onClick={save} className="btnP" style={{opacity:canSave?1:0.4,cursor:canSave?"pointer":"not-allowed"}}>SAVE NAME</button>
     </div></div>);
   };
 
