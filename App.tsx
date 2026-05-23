@@ -1082,10 +1082,10 @@ export default function App(){
       </div>
 
       {/* ── PANELS ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px 12px",gap:9,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px 12px",gap:9,overflow:"hidden",minHeight:0,background:P.roseLite,justifyContent:"center"}}>
 
         {/* PANEL 1 — Goal pace */}
-        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0,overflow:"hidden"}}>
+        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goal pace</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for chart ↗</span>
@@ -1108,8 +1108,8 @@ export default function App(){
           </div>
         </div>
 
-        {/* PANEL 2 — This week: flexShrink:0 so it never grows / leaves dead space */}
-        <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0,display:"flex",flexDirection:"column"}}>
+        {/* PANEL 2 — This week */}
+        <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"12px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0,display:"flex",flexDirection:"column"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:9}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week</p>
             <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(212,120,138,0.1)",borderRadius:14,padding:"3px 10px"}}>
@@ -1131,13 +1131,13 @@ export default function App(){
           </div>
         </div>
 
-        {/* PANEL 3 — Strength PRs: overflow hidden + center-aligned rows keep content in box */}
-        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0,overflow:"hidden"}}>
+        {/* PANEL 3 — Strength PRs: space-between fills box exactly, no dead space */}
+        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"14px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0,overflow:"hidden"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength PRs</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for all ↗</span>
           </div>
-          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:8,paddingTop:8,overflow:"hidden"}}>
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between",paddingTop:10,paddingBottom:4,overflow:"hidden"}}>
             {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex)=>{
               const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
               const pr=allEx?getPR(allEx,data.sessions):null;
