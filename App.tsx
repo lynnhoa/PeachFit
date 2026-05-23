@@ -501,15 +501,15 @@ export default function App(){
         {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:8,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
       </div>
 
-      {/* BODY — same padding discipline as Me/Stats */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px 12px",gap:8,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      {/* BODY */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"20px 14px 20px",gap:10,overflow:"hidden",minHeight:0,background:P.roseLite}}>
 
-        {/* Banner — flexShrink:0 */}
-        <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"8px 14px",flexShrink:0,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
-          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.45}}>{getBanner(data.sessions,data.nutritionLog,data.bodyLog,data.profile)}</p>
+        {/* Banner */}
+        <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 14px 14px 0",padding:"12px 16px",flexShrink:0,boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
+          <p style={{fontSize:12,fontStyle:"italic",color:P.roseDeep,lineHeight:1.5}}>{getBanner(data.sessions,data.nutritionLog,data.bodyLog,data.profile)}</p>
         </div>
 
-        {/* Stats row — flexShrink:0, compact 2-line chips */}
+        {/* Stats row */}
         <div style={{display:"flex",gap:8,flexShrink:0}}>
           {(()=>{
             const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
@@ -519,86 +519,76 @@ export default function App(){
             const wtDelta=last?(wt-wtStart).toFixed(1):null;
             const wsDelta=last?(ws-wsStart).toFixed(1):null;
             return[[IcWeight,`${wt} kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws} cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
-              <div key={l} style={{flex:1,background:P.white,borderRadius:12,padding:"9px 10px",boxShadow:"0 1px 6px rgba(212,120,138,0.08)",cursor:l!=="Sessions"?"pointer":"default"}}
+              <div key={l} style={{flex:1,background:P.white,borderRadius:14,padding:"12px 10px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",cursor:l!=="Sessions"?"pointer":"default",textAlign:"center"}}
                 onClick={()=>l!=="Sessions"&&setLogModal(true)}>
-                <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
-                  <Ic c={P.roseDark} s={13}/>
-                  <span className="mono" style={{fontSize:13,color:P.roseDeep,fontWeight:600,lineHeight:1}}>{v}</span>
-                  {delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600}}>{delta}</span>}
-                </div>
-                <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.07em",textTransform:"uppercase"}}>{l}</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:5}}><Ic c={P.roseDark} s={16}/></div>
+                <div className="mono" style={{fontSize:16,color:P.roseDeep,fontWeight:600,lineHeight:1,marginBottom:3}}>{v}{delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600,marginLeft:3}}>{delta}</span>}</div>
+                <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:500}}>{l}</div>
               </div>
             ));
           })()}
         </div>
 
-        {/* Done today — flexShrink:0, conditional */}
+        {/* Done today — conditional */}
         {daysSince===0&&(
-          <div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:12,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,boxShadow:"0 1px 6px rgba(212,120,138,0.07)"}}>
-            <div style={{width:26,height:26,borderRadius:8,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c={P.roseDark} s={12}/></div>
+          <div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:14,padding:"12px 16px",flexShrink:0,display:"flex",alignItems:"center",gap:10,boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
+            <div style={{width:28,height:28,borderRadius:8,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c={P.roseDark} s={13}/></div>
             <div>
               <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>You trained today — well done.</p>
-              <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>Sessions below for a second look or extra work.</p>
+              <p style={{fontSize:10,color:P.roseMid,marginTop:2}}>Sessions below for a second look or extra work.</p>
             </div>
           </div>
         )}
 
-        {/* Session label — flexShrink:0 */}
-        <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,flexShrink:0}}>Choose your session</p>
-
-        {/* Session cards — flex:1 fills remaining space, no scroll */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,minHeight:0,overflow:"hidden"}}>
+        {/* Session cards */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:10,minHeight:0,overflow:"hidden"}}>
           {SESSIONS.map(pl=>{
             const SIcon=SessIcon[pl.id];
             const isSuggested=pl.id===suggested.id;
             const doneThisWeek=weekCounts[pl.id]||0;
             const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
             const daysSinceLast=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):null;
-            return(<div key={pl.id} style={{flexShrink:0}}>
-              <div onClick={()=>setPlanModal(pl)} style={{background:`linear-gradient(135deg,${pl.color}33,${pl.color}18)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:"12px",padding:"10px 14px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"none",cursor:"pointer"}}>
-                {isSuggested&&<span style={{background:pl.color,color:"white",fontSize:7,letterSpacing:"0.15em",textTransform:"uppercase",padding:"2px 8px",borderRadius:20,display:"inline-block",marginBottom:6,fontFamily:"'DM Sans'",fontWeight:500}}>Suggested today</span>}
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                    <div style={{width:34,height:34,borderRadius:9,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <SIcon c={pl.color} s={17}/>
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <h2 className="serif" style={{fontSize:16,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
-                      <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
-                      {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:1,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
-                    </div>
+            return(<div key={pl.id} onClick={()=>setPlanModal(pl)} style={{flex:1,background:`linear-gradient(135deg,${pl.color}28,${pl.color}12)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:14,padding:"12px 16px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"0 2px 12px rgba(212,120,138,0.06)",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              {isSuggested&&<span style={{background:pl.color,color:"white",fontSize:7,letterSpacing:"0.15em",textTransform:"uppercase",padding:"2px 8px",borderRadius:20,display:"inline-block",marginBottom:8,fontFamily:"'DM Sans'",fontWeight:500}}>Suggested today</span>}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:12,flex:1}}>
+                  <div style={{width:36,height:36,borderRadius:10,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    <SIcon c={pl.color} s={18}/>
                   </div>
-                  <div style={{marginLeft:10,flexShrink:0}}>
-                    <button onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:30,height:30,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`}}>
-                      <IcPlay c="white" s={11}/>
-                    </button>
+                  <div style={{flex:1,minWidth:0}}>
+                    <h2 className="serif" style={{fontSize:16,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
+                    <p style={{fontSize:10,color:P.roseMid,marginTop:2}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+                    {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:2,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
                   </div>
                 </div>
+                <button onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:32,height:32,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`,flexShrink:0,marginLeft:10}}>
+                  <IcPlay c="white" s={12}/>
+                </button>
               </div>
             </div>);
           })}
         </div>
 
-        {/* Protein nudge — flexShrink:0, always visible */}
+        {/* Protein */}
         <div style={{flexShrink:0}}>
           {!todayProtein&&(()=>{
             const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:(data.profile.startWeight??50);
             const proteinTarget=Math.round(currWt*2);
-            return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:12,padding:"10px 14px",boxShadow:"0 1px 6px rgba(212,120,138,0.07)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
+            return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
                 <IcProtein c={P.roseDark} s={14}/>
                 <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>Protein today? <span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g)</span></p>
               </div>
               <div style={{display:"flex",gap:6}}>
                 {([["Yes, hit it",true,"#e8f5e9","#2e7d32","#a5d6a7"],["Not today",false,P.roseLite,P.roseDark,P.rosePrimary],["Skip",null,"transparent",P.roseMid,"rgba(196,144,154,0.3)"]] as [string,boolean|null,string,string,string][]).map(([label,val,bg,col,border])=>(
-                  <button key={label} onClick={()=>logProtein(val)} style={{flex:1,background:bg,border:`1.5px solid ${border}`,borderRadius:20,padding:"7px 4px",fontSize:10,color:col,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,transition:"all 0.14s"}}>{label}</button>
+                  <button key={label} onClick={()=>logProtein(val)} style={{flex:1,background:bg,border:`1.5px solid ${border}`,borderRadius:20,padding:"8px 4px",fontSize:10,color:col,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,transition:"all 0.14s"}}>{label}</button>
                 ))}
               </div>
             </div>);
           })()}
           {todayProtein&&(
-            <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:12,padding:"9px 14px",display:"flex",alignItems:"center",gap:8}}>
-              <div style={{width:20,height:20,borderRadius:"50%",background:todayProtein.hit===true?"#2e7d32":P.roseMid,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c="white" s={10}/></div>
+            <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:22,height:22,borderRadius:"50%",background:todayProtein.hit===true?"#2e7d32":P.roseMid,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c="white" s={10}/></div>
               <p style={{fontSize:11,color:todayProtein.hit===true?"#2e7d32":P.roseMid,fontStyle:"italic"}}>{todayProtein.hit===true?"Protein logged — great work today.":todayProtein.skipped?"Skipped for today — check back tomorrow.":"Logged — not today. Tomorrow is another chance."}</p>
             </div>
           )}
