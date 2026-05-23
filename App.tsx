@@ -494,7 +494,7 @@ export default function App(){
     };
     return(<div className="screen-full">
       {/* Header — identical to Me + Stats */}
-      <div style={{background:P.roseDeep,padding:"72px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{background:P.roseDeep,padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
@@ -620,7 +620,7 @@ export default function App(){
         return tS<tA?s:a;
       },SESSIONS[0]);
       return(<div className="screen" style={{background:P.bg}}>
-        <div style={{background:P.roseDeep,padding:"72px 20px 20px",flexShrink:0}}>
+        <div style={{background:P.roseDeep,padding:"96px 20px 20px",flexShrink:0}}>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Train</p>
           <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
         </div>
@@ -704,7 +704,7 @@ export default function App(){
       const nextEx=sess.nextExIdx!==undefined?active.exercises[sess.nextExIdx]:null;
       const nextIsNewEx=sess.nextExIdx!==ei;
       return(<div className="screen-full" style={{background:P.roseDeep}}>
-        <div style={{padding:"72px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{padding:"96px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
           <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
           <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
@@ -752,7 +752,7 @@ export default function App(){
     if(!ex)return null;
     return(<div className="screen-full" style={{background:P.roseDeep}}>
       {/* Top bar */}
-      <div style={{padding:"72px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      <div style={{padding:"96px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
         <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
         <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
@@ -851,7 +851,7 @@ export default function App(){
     const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
     return(<div className="screen-full" style={{background:P.roseDeep}}>
       {/* Header — matches Stats: 100px top, 20px sides, 40px bottom */}
-      <div style={{padding:"72px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>Session Complete</p>
         <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h1>
@@ -1091,7 +1091,7 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER — matches Today tab: 100px top / 20px sides / 40px bottom ── */}
-      <div style={{padding:"72px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
         <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>
@@ -1513,7 +1513,7 @@ export default function App(){
       <div className="screen-full" style={{background:P.roseDeep}}>
 
         {/* HEADER — identical dimensions to Today + Stats */}
-        <div style={{padding:"72px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
           <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
           <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer"}}>
