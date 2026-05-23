@@ -980,8 +980,8 @@ export default function App(){
 
   // ── ENGINES — PROGRESS ────────────────────────────────────────────────────
   const getCoach=(sessions,bodyLog)=>{
-    if(!bodyLog.length&&!sessions.length)return"Your journey starts here. Log your first stats and train your first session.";
-    if(!bodyLog.length)return`${sessions.length} session${sessions.length>1?"s":""} done. Log your body stats to unlock your full progress picture.`;
+    if(!bodyLog.length&&!sessions.length)return"Your journey starts here. Log stats and train.";
+    if(!bodyLog.length)return`${sessions.length} session${sessions.length>1?"s":""} done. Log body stats to unlock your progress.`;
     const last=bodyLog[bodyLog.length-1];
     const first=bodyLog[0];
     const wtDelta=last.weight!=null&&first.weight!=null?last.weight-first.weight:0;
@@ -990,13 +990,13 @@ export default function App(){
     const weekAgo=Date.now()-7*86400000;
     const recentCore=sessions.filter(s=>new Date(s.date)>weekAgo&&s.sessionId==="core").length;
     const daysSinceLog=Math.floor((Date.now()-new Date(last.date))/86400000);
-    if(daysSinceLog>7)return"It's been a while since you logged your stats. Step on the scale and check in — your progress is waiting.";
-    if(wtDelta<-1&&hasWaist&&wsDelta<-1)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg, waist down ${Math.abs(wsDelta).toFixed(1)} cm. Both moving in the right direction. Stay consistent.`;
-    if(wtDelta>=0&&last.bodyFat&&bodyLog.length>1&&last.bodyFat<bodyLog[bodyLog.length-2].bodyFat)return"Weight is holding steady but body fat is dropping. That's recomposition — you're losing fat and building shape at the same time.";
-    if(hasWaist&&wsDelta<-0.5&&recentCore>=2)return`Waist is down ${Math.abs(wsDelta).toFixed(1)} cm. Core sessions are visibly working — keep them in your rotation.`;
-    if(wtDelta<-0.5)return`Weight trending down ${Math.abs(wtDelta).toFixed(1)} kg from start. The deficit is working. Keep training, keep eating enough protein.`;
-    if(sessions.length>=10)return`${sessions.length} sessions complete. Consistency is the work. The shape follows — it always does.`;
-    return"Every session, every reading — it adds up. You're building something real.";
+    if(daysSinceLog>7)return"Step on the scale — your progress is waiting.";
+    if(wtDelta<-1&&hasWaist&&wsDelta<-1)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg, waist down ${Math.abs(wsDelta).toFixed(1)} cm. Keep going.`;
+    if(wtDelta>=0&&last.bodyFat&&bodyLog.length>1&&last.bodyFat<bodyLog[bodyLog.length-2].bodyFat)return"Weight steady, body fat dropping. That's recomposition.";
+    if(hasWaist&&wsDelta<-0.5&&recentCore>=2)return`Waist down ${Math.abs(wsDelta).toFixed(1)} cm. Core sessions are working.`;
+    if(wtDelta<-0.5)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg. The deficit is working — stay consistent.`;
+    if(sessions.length>=10)return`${sessions.length} sessions done. Consistency is everything.`;
+    return"Every session counts. You're building something real.";
   };
   const getMilestones=(sessions,bodyLog)=>{
     const ms=[];
@@ -1070,10 +1070,10 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER ── */}
-      <div style={{padding:"16px 20px 22px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"52px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-44,right:-44,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
-        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.3,marginBottom:14}}>
+        <h1 className="serif" style={{fontSize:22,color:"white",fontWeight:400,lineHeight:1.2,marginBottom:10}}>
           {coachParts.map((p,i)=>typeof p==="string"
             ?<span key={i}>{p}</span>
             :<em key={i} style={{color:P.roseHero,fontStyle:"italic"}}>{p.hi}</em>
@@ -1097,7 +1097,7 @@ export default function App(){
       </div>
 
       {/* ── PANELS — flex:1 each, fills screen, no scroll ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"8px 12px 10px",gap:8,overflow:"hidden",minHeight:0}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"8px 12px 10px",gap:8,overflow:"hidden",minHeight:0,background:P.roseLite}}>
 
         {/* PANEL 1 — Goal pace */}
         <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"11px 13px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
@@ -1136,13 +1136,13 @@ export default function App(){
               </span>
             </div>
           </div>
-          <div style={{display:"flex",gap:8,flex:1,paddingTop:10}}>
+          <div style={{display:"flex",gap:7,flexShrink:0,height:52,paddingTop:7}}>
             {([["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][]).map(([id,label,Ic,col])=>{
               const done=weekTypes.has(id);
-              return(<div key={id} style={{flex:1,borderRadius:10,border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"18":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
-                <Ic c={done?col:P.roseMid} s={22}/>
-                <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:done?600:400,color:done?col:P.roseMid}}>{label}</span>
-                <span style={{fontSize:14,color:done?col:`${col}40`,lineHeight:1}}>{done?"✓":"○"}</span>
+              return(<div key={id} style={{flex:1,borderRadius:10,border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"18":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"row",alignItems:"center",justifyContent:"center",gap:5}}>
+                <Ic c={done?col:P.roseMid} s={16}/>
+                <span style={{fontSize:9,letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:done?600:400,color:done?col:P.roseMid}}>{label}</span>
+                <span style={{fontSize:10,color:done?col:`${col}40`,lineHeight:1}}>{done?"✓":"○"}</span>
               </div>);
             })}
           </div>
@@ -1162,7 +1162,7 @@ export default function App(){
               const startKg=allEx?.kg||0;
               const pct=pr&&startKg?Math.min(100,((pr-startKg)/startKg)*100):0;
               const isPR=cur&&pr&&cur>=pr;
-              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderTop:i>0?`1px solid ${P.roseLite}`:"none"}}>
+              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"5px 0",borderTop:"none"}}>
                 <span style={{flex:1,fontSize:12,color:P.roseMid,fontWeight:500,lineHeight:1}}>{ex.name}</span>
                 <div style={{width:52,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
                   <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3}}/>
@@ -1176,23 +1176,23 @@ export default function App(){
         </div>
 
         {/* PANEL 4 — Log + Milestone */}
-        <div style={{display:"flex",gap:8,flexShrink:0,height:48}}>
-          <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:12,letterSpacing:"0.06em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
+        <div style={{display:"flex",gap:8,flexShrink:0,height:40}}>
+          <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:10,letterSpacing:"0.05em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
             onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
           </button>
           {milestones.length>0?(
-            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:`linear-gradient(135deg,${P.roseLite},${P.white})`,border:`1.5px solid ${P.rosePrimary}`,borderRadius:14,padding:"10px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
-                <IcStar c={P.roseDark} s={9}/>
-                <span style={{fontSize:8,letterSpacing:"0.12em",textTransform:"uppercase",color:P.roseDark,fontWeight:500}}>Milestone</span>
+            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:`linear-gradient(135deg,${P.roseLite},${P.white})`,border:`1.5px solid ${P.rosePrimary}`,borderRadius:11,padding:"6px 10px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:1}}>
+                <IcStar c={P.roseDark} s={8}/>
+                <span style={{fontSize:7,letterSpacing:"0.1em",textTransform:"uppercase",color:P.roseDark,fontWeight:500}}>Milestone</span>
               </div>
-              <p style={{fontSize:10,color:P.roseDeep,fontWeight:600,lineHeight:1.25}}>{milestones[0].title}</p>
+              <p style={{fontSize:9,color:P.roseDeep,fontWeight:600,lineHeight:1.2}}>{milestones[0].title}</p>
             </div>
           ):(
-            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:P.roseLite,border:`1px dashed ${P.rosePrimary}`,borderRadius:14,padding:"10px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",gap:3}}>
-              <IcSparkle c={P.rosePrimary} s={16}/>
-              <p style={{fontSize:8,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>Milestones unlock as you progress</p>
+            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:P.roseLite,border:`1px dashed ${P.rosePrimary}`,borderRadius:11,padding:"6px 10px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+              <IcSparkle c={P.rosePrimary} s={13}/>
+              <p style={{fontSize:10,color:P.roseDark,fontWeight:500,lineHeight:1.2}}>Milestones unlock with progress</p>
             </div>
           )}
         </div>
