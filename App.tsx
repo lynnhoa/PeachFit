@@ -494,7 +494,7 @@ export default function App(){
     };
     return(<div className="screen-full">
       {/* Header — identical to Me + Stats */}
-      <div style={{background:P.roseDeep,padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{background:P.roseDeep,padding:"52px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
@@ -620,9 +620,9 @@ export default function App(){
         return tS<tA?s:a;
       },SESSIONS[0]);
       return(<div className="screen" style={{background:P.bg}}>
-        <div style={{background:P.roseDeep,padding:"100px 20px 40px",flexShrink:0}}>
+        <div style={{background:P.roseDeep,padding:"52px 20px 20px",flexShrink:0}}>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Train</p>
-          <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
+          <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
         </div>
         <div style={{padding:"12px 14px 80px"}}>
           {SESSIONS.map(pl=>{
@@ -851,13 +851,13 @@ export default function App(){
     const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
     return(<div className="screen-full" style={{background:P.roseDeep}}>
       {/* Header — matches Stats: 100px top, 20px sides, 40px bottom */}
-      <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"52px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-        <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Session Complete</p>
-        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.2}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h1>
+        <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>Session Complete</p>
+        <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h1>
       </div>
       {/* Panels — same roseLite background, 20px/14px padding, 10px gap as Stats */}
-      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",background:P.roseLite,padding:"20px 14px 32px",display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{flex:1,overflow:"hidden",background:P.roseLite,padding:"14px 14px 10px",display:"flex",flexDirection:"column",gap:8}}>
         {/* Stat chips — matches Today tab stat row sizing */}
         <div style={{display:"flex",gap:8,flexShrink:0}}>
           {([[IcClock,fmtDur(summary.duration),"Time"],[IcFire,`~${summary.calories}`,("kcal" as string)],[IcTrain,`${doneSets}/${totSets}`,"Sets"]] as [any,string,string][]).map(([Ic,v,l])=>(
@@ -1091,10 +1091,10 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER — matches Today tab: 100px top / 20px sides / 40px bottom ── */}
-      <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"52px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
-        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.2}}>
+        <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>
           {coachParts.map((p,i)=>typeof p==="string"
             ?<span key={i}>{p}</span>
             :<em key={i} style={{color:P.roseHero,fontStyle:"italic"}}>{p.hi}</em>
@@ -1513,11 +1513,11 @@ export default function App(){
       <div className="screen-full" style={{background:P.roseDeep}}>
 
         {/* HEADER — identical dimensions to Today + Stats */}
-        <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{padding:"52px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
           <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
           <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer"}}>
-            <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.2}}>{profile.name}</h1>
+            <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>{profile.name}</h1>
             <IcEdit c={P.roseMid} s={14}/>
           </div>
           <div style={{display:"flex",gap:7}}>
