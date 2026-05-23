@@ -462,20 +462,24 @@ export default function App(){
       persist({...data,nutritionLog:newLog});
     };
     return(<div className="screen-full">
-      {/* Header */}
+      {/* Header — identical to Me + Stats */}
       <div style={{background:P.roseDeep,padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
-        {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:10,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
+        {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:8,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
       </div>
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",overflow:"hidden"}}>
-        {/* Banner */}
-        <div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"9px 13px",marginBottom:12}}>
-          <p style={{fontSize:10,fontStyle:"italic",color:P.roseDeep,lineHeight:1.55}}>{getBanner(data.sessions,data.nutritionLog)}</p>
+
+      {/* BODY — same padding discipline as Me/Stats */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"14px 14px 14px",gap:10,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+
+        {/* Banner — flexShrink:0 */}
+        <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"9px 14px",flexShrink:0,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
+          <p style={{fontSize:11,fontStyle:"italic",color:P.roseDeep,lineHeight:1.5}}>{getBanner(data.sessions,data.nutritionLog)}</p>
         </div>
-        {/* Stats row — tappable, open log modal */}
-        <div style={{display:"flex",gap:7,marginBottom:12}}>
+
+        {/* Stats row — flexShrink:0 */}
+        <div style={{display:"flex",gap:8,flexShrink:0}}>
           {(()=>{
             const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
             const first=data.bodyLog.length?data.bodyLog[0]:null;
@@ -484,106 +488,96 @@ export default function App(){
             const wtDelta=last?(wt-wtStart).toFixed(1):null;
             const wsDelta=last?(ws-wsStart).toFixed(1):null;
             return[[IcWeight,`${wt}kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws}cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
-              <div key={l} className="card" style={{flex:1,textAlign:"center",padding:"10px 4px",cursor:l!=="Sessions"?"pointer":"default"}}
+              <div key={l} style={{flex:1,background:P.white,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 1px 6px rgba(212,120,138,0.08)",cursor:l!=="Sessions"?"pointer":"default"}}
                 onClick={()=>l!=="Sessions"&&setLogModal(true)}>
-                <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={P.roseDark} s={16}/></div>
-                <div className="mono" style={{fontSize:14,color:P.roseDeep,fontWeight:600}}>{v}</div>
-                {delta&&<div style={{fontSize:8,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:parseFloat(delta)<0?600:400,marginTop:1}}>{delta}</div>}
-                <div style={{fontSize:8,color:P.roseMid,letterSpacing:"0.08em",textTransform:"uppercase",marginTop:delta?0:2}}>{l}</div>
+                <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={P.roseDark} s={15}/></div>
+                <div className="mono" style={{fontSize:14,color:P.roseDeep,fontWeight:600,lineHeight:1}}>{v}</div>
+                {delta&&<div style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:parseFloat(delta)<0?600:400,marginTop:2}}>{delta}</div>}
+                <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.07em",textTransform:"uppercase",marginTop:delta?1:3}}>{l}</div>
               </div>
             ));
           })()}
         </div>
-        {/* Done today card */}
+
+        {/* Done today — flexShrink:0, conditional */}
         {daysSince===0&&(
-          <div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:13,padding:"11px 14px",marginBottom:12,display:"flex",alignItems:"center",gap:10,boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
-            <div style={{width:28,height:28,borderRadius:8,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c={P.roseDark} s={13}/></div>
+          <div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:12,padding:"10px 14px",flexShrink:0,display:"flex",alignItems:"center",gap:10,boxShadow:"0 1px 6px rgba(212,120,138,0.07)"}}>
+            <div style={{width:26,height:26,borderRadius:8,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c={P.roseDark} s={12}/></div>
             <div>
-              <p style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>You trained today — well done.</p>
-              <p style={{fontSize:9,color:P.roseMid,marginTop:1}}>Sessions below if you want a second look or extra work.</p>
+              <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>You trained today — well done.</p>
+              <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>Sessions below for a second look or extra work.</p>
             </div>
           </div>
         )}
-        {/* Session cards */}
-        <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",marginBottom:8,fontWeight:500}}>Choose your session</p>
-        {SESSIONS.map(pl=>{
-          const SIcon=SessIcon[pl.id];
-          const isSuggested=pl.id===suggested.id;
-          const doneThisWeek=weekCounts[pl.id]||0;
-          const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
-          const daysSinceLast=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):null;
-          const isOpen=expanded===pl.id;
-          return(<div key={pl.id} style={{marginBottom:8}}>
-            <div className="hero" style={{background:`linear-gradient(135deg,${pl.color}44,${pl.color}22)`,border:`1.5px solid ${isSuggested?pl.color:P.roseLite}`,borderRadius:isOpen?"14px 14px 0 0":"14px",marginBottom:0,boxShadow:isSuggested?`0 3px 16px ${pl.color}38`:"none",transition:"border-radius 0.18s ease"}}>
-              {isSuggested&&<span className="tag" style={{background:pl.color,color:"white",marginBottom:7,display:"block",width:"fit-content",fontSize:7}}>SUGGESTED TODAY</span>}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
-                  <div style={{width:36,height:36,borderRadius:10,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                    <SIcon c={pl.color} s={18}/>
+
+        {/* Session label — flexShrink:0 */}
+        <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,flexShrink:0}}>Choose your session</p>
+
+        {/* Session cards — flex:1 fills remaining space, no scroll */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,minHeight:0,overflow:"hidden"}}>
+          {SESSIONS.map(pl=>{
+            const SIcon=SessIcon[pl.id];
+            const isSuggested=pl.id===suggested.id;
+            const doneThisWeek=weekCounts[pl.id]||0;
+            const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
+            const daysSinceLast=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):null;
+            const isOpen=expanded===pl.id;
+            return(<div key={pl.id} style={{flexShrink:0}}>
+              <div style={{background:`linear-gradient(135deg,${pl.color}33,${pl.color}18)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:isOpen?"12px 12px 0 0":"12px",padding:"10px 14px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"none",transition:"border-radius 0.18s ease"}}>
+                {isSuggested&&<span style={{background:pl.color,color:"white",fontSize:7,letterSpacing:"0.15em",textTransform:"uppercase",padding:"2px 8px",borderRadius:20,display:"inline-block",marginBottom:6,fontFamily:"'DM Sans'",fontWeight:500}}>Suggested today</span>}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,flex:1}}>
+                    <div style={{width:34,height:34,borderRadius:9,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <SIcon c={pl.color} s={17}/>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <h2 className="serif" style={{fontSize:16,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
+                      <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+                      {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:1,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
+                    </div>
                   </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <h2 className="serif" style={{fontSize:17,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
-                    <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
-                    {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:1,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5,marginLeft:10,flexShrink:0}}>
+                    <button onClick={()=>startSession(pl)} style={{width:30,height:30,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`}}>
+                      <IcPlay c="white" s={11}/>
+                    </button>
+                    <button onClick={(e)=>{e.stopPropagation();setExpanded(isOpen?null:pl.id);}} style={{background:"none",border:"none",cursor:"pointer",color:P.roseMid,fontSize:9,fontFamily:"'DM Sans'",letterSpacing:"0.04em",padding:0}}>
+                      {isOpen?"▲ hide":"▾ plan"}
+                    </button>
                   </div>
-                </div>
-                <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:6,marginLeft:10,flexShrink:0}}>
-                  <button onClick={()=>startSession(pl)} style={{width:32,height:32,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`}}>
-                    <IcPlay c="white" s={12}/>
-                  </button>
-                  <button onClick={(e)=>{e.stopPropagation();setExpanded(isOpen?null:pl.id);}} style={{background:"none",border:"none",cursor:"pointer",color:P.roseMid,fontSize:9,fontFamily:"'DM Sans'",letterSpacing:"0.04em",padding:0}}>
-                    {isOpen?"▲ hide":"▾ plan"}
-                  </button>
                 </div>
               </div>
-            </div>
-            {isOpen&&(<div className="drw" style={{background:P.white,border:`1.5px solid ${pl.color}`,borderTop:"none",borderRadius:"0 0 14px 14px",overflow:"hidden"}}>
-              {pl.exercises.map((ex,i)=>{
-                const ds=daysSince??0;
-                const cw=getWeight(ex,data.sessions,ds);const pr=getPR(ex,data.sessions);
-                const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
-                return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"9px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:8}}>
-                  <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:14,textAlign:"right"}}>{i+1}</span>
-                  <div style={{flex:1,minWidth:0}}>
-                    <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
-                    <p style={{fontSize:9,color:P.roseMid}}>{ex.muscle}</p>
-                  </div>
-                  <div style={{textAlign:"right",flexShrink:0}}>
-                    <p className="mono" style={{fontSize:11,color:P.roseDark}}>{ex.sets}×{ex.reps}</p>
-                    <p style={{fontSize:10,color:isUp?P.roseDark:P.roseMid,fontWeight:isUp?600:400}}>{ex.bw?"BW":`${cw}kg`}{isUp?" ↑":""}</p>
-                  </div>
-                </div>);
-              })}
-              <div style={{padding:"10px 14px"}}><button onClick={()=>startSession(pl)} className="btnP" style={{fontSize:12,padding:"11px"}}>START {pl.name.toUpperCase()} →</button></div>
-            </div>)}
-          </div>);
-        })}
-        {/* Week strip */}
-        {thisWeekSess.length>0&&(<>
-          <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",margin:"10px 0 7px",fontWeight:500}}>Last 7 days</p>
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {thisWeekSess.slice(-7).map((s,i)=>{
-              const pl=SESSIONS.find(x=>x.id===s.sessionId);
-              const SIc=pl?SessIcon[pl.id]:null;
-              const d=new Date(s.date);
-              const label=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][d.getDay()];
-              return(<div key={i} style={{background:pl?pl.color+"22":"#f0e8ec",border:`1.5px solid ${pl?pl.color:P.roseLite}`,borderRadius:9,padding:"5px 8px",textAlign:"center",minWidth:46}}>
-                <p style={{fontSize:7,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.06em"}}>{label}</p>
-                <div style={{display:"flex",justifyContent:"center",margin:"2px 0"}}>{SIc?<SIc c={pl.color} s={13}/>:<IcCheck c={P.roseDark} s={13}/>}</div>
-                <p style={{fontSize:7,color:pl?pl.color:P.roseMid,fontWeight:500}}>{pl?.tag||"done"}</p>
-              </div>);
-            })}
-          </div>
-        </>)}
-        {/* Protein nudge */}
-        <div style={{marginTop:10,marginBottom:2}}>
+              {isOpen&&(<div className="drw" style={{background:P.white,border:`1.5px solid ${pl.color}`,borderTop:"none",borderRadius:"0 0 12px 12px",overflow:"hidden"}}>
+                {pl.exercises.map((ex,i)=>{
+                  const ds=daysSince??0;
+                  const cw=getWeight(ex,data.sessions,ds);const pr=getPR(ex,data.sessions);
+                  const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
+                  return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"8px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:8}}>
+                    <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:14,textAlign:"right"}}>{i+1}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
+                      <p style={{fontSize:9,color:P.roseMid}}>{ex.muscle}</p>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <p className="mono" style={{fontSize:11,color:P.roseDark}}>{ex.sets}×{ex.reps}</p>
+                      <p style={{fontSize:10,color:isUp?P.roseDark:P.roseMid,fontWeight:isUp?600:400}}>{ex.bw?"BW":`${cw}kg`}{isUp?" ↑":""}</p>
+                    </div>
+                  </div>);
+                })}
+                <div style={{padding:"10px 14px"}}><button onClick={()=>startSession(pl)} className="btnP" style={{fontSize:12,padding:"11px"}}>START {pl.name.toUpperCase()} →</button></div>
+              </div>)}
+            </div>);
+          })}
+        </div>
+
+        {/* Protein nudge — flexShrink:0, always visible */}
+        <div style={{flexShrink:0}}>
           {!todayProtein&&(()=>{
             const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:(data.profile.startWeight??50);
             const proteinTarget=Math.round(currWt*2);
-            return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:13,padding:"11px 14px",boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
-              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:9}}>
+            return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:12,padding:"10px 14px",boxShadow:"0 1px 6px rgba(212,120,138,0.07)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:8}}>
                 <IcProtein c={P.roseDark} s={14}/>
-                <p style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Protein today? <span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g target)</span></p>
+                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>Protein today? <span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g)</span></p>
               </div>
               <div style={{display:"flex",gap:6}}>
                 {([["Yes, hit it",true,"#e8f5e9","#2e7d32","#a5d6a7"],["Not today",false,P.roseLite,P.roseDark,P.rosePrimary],["Skip",null,"transparent",P.roseMid,"rgba(196,144,154,0.3)"]] as [string,boolean|null,string,string,string][]).map(([label,val,bg,col,border])=>(
@@ -593,29 +587,13 @@ export default function App(){
             </div>);
           })()}
           {todayProtein&&(
-            <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:13,padding:"9px 14px",display:"flex",alignItems:"center",gap:8}}>
+            <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:12,padding:"9px 14px",display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:20,height:20,borderRadius:"50%",background:todayProtein.hit===true?"#2e7d32":P.roseMid,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c="white" s={10}/></div>
               <p style={{fontSize:11,color:todayProtein.hit===true?"#2e7d32":P.roseMid,fontStyle:"italic"}}>{todayProtein.hit===true?"Protein logged — great work today.":todayProtein.skipped?"Skipped for today — check back tomorrow.":"Logged — not today. Tomorrow is another chance."}</p>
             </div>
           )}
         </div>
-        {/* ETA */}
-        {eta&&(<div className="card" style={{marginTop:10,padding:"12px 14px"}}>
-          <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:7,fontWeight:500}}>Goal pace</p>
-          <div style={{display:"flex",gap:10}}>
-            {(()=>{
-              const chips:string[][]=[...(eta.avg?[["Avg/wk",`${eta.avg}x`]]:[])] as string[][];
-              chips.push([`${eta.gw} kg`,typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight}wk`:String(eta.weeksToGoalWeight)]);
-              chips.push([`${eta.gws}cm`,typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist}wk`:String(eta.weeksToGoalWaist)]);
-              return chips.map(([l,v])=>(
-                <div key={l} style={{flex:1}}>
-                  <p style={{fontSize:9,color:P.roseMid}}>{l}</p>
-                  <p className="mono" style={{fontSize:16,color:P.roseDark,fontWeight:600}}>{v}</p>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>)}
+
       </div>
     </div>);
   };
