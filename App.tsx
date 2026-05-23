@@ -1226,18 +1226,33 @@ export default function App(){
     const[ma,setMa]=useState(last?.metabolicAge?.toString()||"");
     const[showMore,setShowMore]=useState(false);
     const[activeField,setActiveField]=useState<string|null>(logModal||null);
+    const[kbOffset,setKbOffset]=useState(0);
     const daysSince=last?Math.floor((Date.now()-new Date(last.date))/86400000):null;
     const wtDelta=wt&&last?.weight?(parseFloat(wt)-last.weight).toFixed(1):null;
     const wsDelta=ws&&last?.waist?(parseFloat(ws)-last.waist).toFixed(1):null;
     const bfDelta=bf&&last?.bodyFat?(parseFloat(bf)-last.bodyFat).toFixed(1):null;
     const canSave=!!(wt||ws||bf);
+
+    // Push sheet up when keyboard opens on iOS
+    useEffect(()=>{
+      const vv=window.visualViewport;
+      if(!vv)return;
+      const onResize=()=>{
+        const hidden=window.innerHeight-vv.height-vv.offsetTop;
+        setKbOffset(hidden>50?hidden:0);
+      };
+      vv.addEventListener("resize",onResize);
+      vv.addEventListener("scroll",onResize);
+      return()=>{vv.removeEventListener("resize",onResize);vv.removeEventListener("scroll",onResize);};
+    },[]);
+
     const save=()=>{
       if(!canSave)return;
       logBodyEntry({...(wt&&{weight:parseFloat(wt)}),...(ws&&{waist:parseFloat(ws)}),...(bf&&{bodyFat:parseFloat(bf)}),...(mm&&{muscleMass:parseFloat(mm)}),...(ma&&{metabolicAge:parseFloat(ma)})});
       setLogModal(null);
     };
     return(<div className="mo" onClick={()=>setLogModal(null)}>
-      <div className="ms sl" onClick={e=>e.stopPropagation()}>
+      <div className="ms sl" onClick={e=>e.stopPropagation()} style={{paddingBottom:`calc(${kbOffset}px + 24px + env(safe-area-inset-bottom,0px))`,transition:"padding-bottom 0.2s ease"}}>
         <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
           <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>Today's numbers</h3>
