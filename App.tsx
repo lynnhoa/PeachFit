@@ -1070,7 +1070,7 @@ export default function App(){
     return(<div className="screen-full" style={{background:P.roseDeep}}>
 
       {/* ── HEADER ── */}
-      <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"16px 20px 22px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-44,right:-44,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
         <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.3,marginBottom:14}}>
@@ -1097,17 +1097,17 @@ export default function App(){
       </div>
 
       {/* ── PANELS — flex:1 each, fills screen, no scroll ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"0 14px 20px",gap:10,overflow:"hidden",minHeight:0}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"8px 12px 10px",gap:8,overflow:"hidden",minHeight:0}}>
 
         {/* PANEL 1 — Goal pace */}
-        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
+        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"11px 13px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
           {/* header row + divider */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goal pace</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for chart ↗</span>
           </div>
           {/* bars centred in remaining space */}
-          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:14,paddingTop:12}}>
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:11,paddingTop:8}}>
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
                 <span style={{fontSize:11,color:P.roseMid,fontWeight:500}}>Weight <span style={{fontSize:10,fontWeight:400,opacity:0.75}}>{wtStart} → {goalW} kg</span></span>
@@ -1126,7 +1126,7 @@ export default function App(){
         </div>
 
         {/* PANEL 2 — This week */}
-        <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
+        <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"11px 13px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week</p>
             <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(212,120,138,0.1)",borderRadius:14,padding:"3px 10px"}}>
@@ -1149,7 +1149,7 @@ export default function App(){
         </div>
 
         {/* PANEL 3 — Strength PRs */}
-        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
+        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"11px 13px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength PRs</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for all ↗</span>
@@ -1176,7 +1176,7 @@ export default function App(){
         </div>
 
         {/* PANEL 4 — Log + Milestone */}
-        <div style={{display:"flex",gap:10,flexShrink:0,height:54}}>
+        <div style={{display:"flex",gap:8,flexShrink:0,height:48}}>
           <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:12,letterSpacing:"0.06em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
             onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
