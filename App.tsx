@@ -461,7 +461,7 @@ export default function App(){
       else newLog.push({date:today,hit:null,skipped:true}); // skipped: show collapsed state
       persist({...data,nutritionLog:newLog});
     };
-    return(<div className="screen">
+    return(<div className="screen-full">
       {/* Header */}
       <div style={{background:P.roseDeep,padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
@@ -469,7 +469,7 @@ export default function App(){
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
         {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:10,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
       </div>
-      <div style={{padding:"12px 14px 80px"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 14px",overflow:"hidden"}}>
         {/* Banner */}
         <div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"9px 13px",marginBottom:12}}>
           <p style={{fontSize:10,fontStyle:"italic",color:P.roseDeep,lineHeight:1.55}}>{getBanner(data.sessions,data.nutritionLog)}</p>
