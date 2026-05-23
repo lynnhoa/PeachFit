@@ -1491,83 +1491,94 @@ export default function App(){
 
     return(<>
       <div className="screen-full" style={{background:P.roseDeep}}>
-        <div style={{padding:"100px 18px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
-          <div style={{position:"absolute",top:-50,right:-50,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
-          <p style={{fontSize:8,letterSpacing:"0.26em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
-          <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer"}}>
-            <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>{profile.name}</h1>
+
+        {/* HEADER — identical dimensions to Today + Stats */}
+        <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+          <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
+          <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
+          <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer"}}>
+            <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.2}}>{profile.name}</h1>
             <IcEdit c={P.roseMid} s={14}/>
           </div>
-          <div style={{display:"flex",gap:5}}>
+          <div style={{display:"flex",gap:7}}>
             {[["Sessions",`${data.sessions.length}`],["Last 7 days",`${thisWeekSess.length}/3`],(()=>{const pr=getProteinHitRate(data.nutritionLog);return["Protein",pr?`${pr.hits}/${pr.total}`:"—"];})()].map(([l,v])=>(
-              <div key={l} style={{background:"rgba(255,255,255,0.08)",borderRadius:10,padding:"5px 10px",flexShrink:0}}>
-                <span className="mono" style={{fontSize:12,color:"white",display:"block",lineHeight:1}}>{v}</span>
-                <span style={{fontSize:8,color:P.roseMid,letterSpacing:"0.04em"}}>{l}</span>
+              <div key={l} style={{background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"7px 12px",flexShrink:0}}>
+                <span className="mono" style={{fontSize:14,color:"white",display:"block",lineHeight:1.1}}>{v}</span>
+                <span style={{fontSize:9,color:P.roseMid,letterSpacing:"0.04em"}}>{l}</span>
               </div>
             ))}
           </div>
         </div>
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,padding:"0 14px",overflow:"hidden",justifyContent:"space-between",paddingBottom:8}}>
+
+        {/* PANELS — same system as Stats: flexShrink:0 per panel, 20px breathing top/bottom */}
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:10,padding:"20px 14px 20px",overflow:"hidden",minHeight:0,background:P.roseLite}}>
 
           {/* PANEL 1 — Goals */}
-          <div onClick={()=>setMeModal("goals")} style={{background:P.white,borderRadius:14,padding:"13px 16px",cursor:"pointer",boxShadow:"0 2px 10px rgba(212,120,138,0.08)",flex:"0 0 auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <p style={{fontSize:7,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goals</p>
+          <div onClick={()=>setMeModal("goals")} style={{background:P.white,borderRadius:14,padding:"14px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goals</p>
               <div style={{display:"flex",alignItems:"center",gap:4}}>
                 <IcEdit c={P.roseMid} s={12}/>
-                <span style={{fontSize:8,color:P.roseMid}}>tap to edit</span>
+                <span style={{fontSize:9,color:P.roseMid}}>tap to edit</span>
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              {[["Goal weight",`${profile.goalWeight??45} kg`,IcWeight],["Goal waist",`${profile.goalWaist??63} cm`,IcWaist],["Current fat",bf?`${bf}%`:"—",IcFire]].map(([label,val,Ic])=>(
-                <div key={label} style={{flex:1,textAlign:"center",background:P.bg,borderRadius:10,padding:"8px 4px"}}>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={P.roseDark} s={14}/></div>
-                  <p className="mono" style={{fontSize:16,color:P.roseDark,lineHeight:1}}>{val}</p>
-                  <p style={{fontSize:7,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.08em",marginTop:2}}>{label}</p>
+              {[["Goal weight",`${profile.goalWeight??45} kg`,IcWeight],["Goal waist",`${profile.goalWaist??63} cm`,IcWaist],["Body fat",bf?`${bf}%`:"—",IcFire]].map(([label,val,Ic])=>(
+                <div key={label} style={{flex:1,textAlign:"center",background:P.bg,borderRadius:10,padding:"10px 4px"}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:4}}><Ic c={P.roseDark} s={15}/></div>
+                  <p className="mono" style={{fontSize:17,color:P.roseDark,lineHeight:1}}>{val}</p>
+                  <p style={{fontSize:9,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.07em",marginTop:3}}>{label}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* PANEL 2 — Programme */}
-          <div style={{background:P.white,borderRadius:14,padding:"13px 16px",boxShadow:"0 2px 10px rgba(212,120,138,0.08)",flex:"0 0 auto"}}>
-            <p style={{fontSize:7,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>Programme</p>
-            <div style={{display:"flex",gap:6,marginBottom:10}}>
+          <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+            <div style={{paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Programme</p>
+            </div>
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
               {SESSIONS.map(s=>{const Ic=SessIcon[s.id];return(
-                <div key={s.id} style={{flex:1,borderRadius:10,padding:"7px 4px",textAlign:"center",border:`1.5px solid ${s.color}22`,background:`${s.color}11`}}>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:2}}><Ic c={s.color} s={14}/></div>
-                  <p style={{fontSize:8,color:s.color,fontWeight:500}}>{s.tag}</p>
+                <div key={s.id} style={{flex:1,borderRadius:10,padding:"9px 4px",textAlign:"center",border:`1.5px solid ${s.color}22`,background:`${s.color}11`}}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={s.color} s={16}/></div>
+                  <p style={{fontSize:9,color:s.color,fontWeight:500}}>{s.tag}</p>
                 </div>
               );})}
             </div>
             <div style={{display:"flex",gap:8}}>
-              {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["No fixed days","train when you go"],[`${SESSIONS.length} sessions`,"full coverage"]].map(([val,sub])=>(
-                <div key={val} style={{flex:1}}><p style={{fontSize:10,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p><p style={{fontSize:8,color:P.roseMid,lineHeight:1.3}}>{sub}</p></div>
+              {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["No fixed days","train when ready"],[`${SESSIONS.length} sessions`,"full coverage"]].map(([val,sub])=>(
+                <div key={val} style={{flex:1}}>
+                  <p style={{fontSize:11,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p>
+                  <p style={{fontSize:9,color:P.roseMid,lineHeight:1.4,marginTop:2}}>{sub}</p>
+                </div>
               ))}
             </div>
           </div>
 
           {/* PANEL 3 — Data */}
-          <div style={{background:P.white,borderRadius:14,padding:"13px 16px",boxShadow:"0 2px 10px rgba(212,120,138,0.08)",flex:"0 0 auto"}}>
-            <p style={{fontSize:7,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:10}}>Data</p>
-            <div style={{display:"flex",gap:8}}>
-              <button onClick={()=>setMeModal("resetWeights")} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"10px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                <IcRefresh c={P.roseDark} s={15}/>
-                <p style={{fontSize:9,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Reset weights</p>
-                <p style={{fontSize:7,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>after a long break</p>
+          <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+            <div style={{paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Data</p>
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>setMeModal("resetWeights")} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <IcRefresh c={P.roseDark} s={16}/>
+                <p style={{fontSize:10,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Reset weights</p>
+                <p style={{fontSize:9,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>after a long break</p>
               </button>
-              <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#fff5f5",border:"1px solid #ffc8cd",borderRadius:12,padding:"10px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
-                <IcTrash c="#c0392b" s={15}/>
-                <p style={{fontSize:9,color:"#c0392b",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
-                <p style={{fontSize:7,color:"#e57373",textAlign:"center",lineHeight:1.3}}>start fresh</p>
+              <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#fff5f5",border:"1px solid #ffc8cd",borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <IcTrash c="#c0392b" s={16}/>
+                <p style={{fontSize:10,color:"#c0392b",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
+                <p style={{fontSize:9,color:"#e57373",textAlign:"center",lineHeight:1.3}}>start fresh</p>
               </button>
             </div>
           </div>
 
           {/* PANEL 4 — App info */}
-          <div style={{background:P.white,borderRadius:14,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 10px rgba(212,120,138,0.08)",flex:"0 0 auto"}}>
-            <p style={{fontSize:9,color:P.roseMid,letterSpacing:"0.04em"}}>v1.0 · May 2026</p>
-            <p style={{fontSize:9,color:P.roseMid,fontStyle:"italic"}}>Built with care for {profile.name} ✦</p>
+          <div style={{background:P.white,borderRadius:14,padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+            <p style={{fontSize:10,color:P.roseMid,letterSpacing:"0.04em"}}>v1.0 · May 2026</p>
+            <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic"}}>Built with care for {profile.name}</p>
           </div>
 
         </div>
