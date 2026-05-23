@@ -848,63 +848,78 @@ export default function App(){
   const Summary=()=>{
     const pr=getProteinHitRate(data.nutritionLog);
     const lowProtein=pr&&pr.total>=3&&pr.rate<3/7;
-    return(<div className="screen">
-    <div style={{background:P.roseDeep,padding:"52px 20px 28px",textAlign:"center"}}>
-      <IcSparkle c={P.roseHero} s={32}/>
-      <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"12px 0 6px"}}>Session Complete</p>
-      <h2 className="serif" style={{fontSize:28,color:"white",fontWeight:400}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
-    </div>
-    <div style={{padding:"16px 14px 80px"}}>
-      <div style={{display:"flex",gap:7,marginBottom:12}}>
-        {[[IcClock,fmt(summary.duration),"Time"],[IcFire,`~${summary.calories}`,"kcal"],[IcTrain,`${doneSets}/${totSets}`,"Sets"]].map(([Ic,v,l])=>(
-          <div key={l} className="card" style={{flex:1,textAlign:"center",padding:"12px 4px"}}>
-            <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={P.roseDark} s={15}/></div>
-            <div className="mono" style={{fontSize:15,color:P.roseDark}}>{v}</div>
-            <div style={{fontSize:8,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.07em",marginTop:1}}>{l}</div>
-          </div>
-        ))}
+    const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
+    return(<div className="screen-full" style={{background:P.roseDeep}}>
+      {/* Header — matches Stats: 100px top, 20px sides, 40px bottom */}
+      <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
+        <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Session Complete</p>
+        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.2}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h1>
       </div>
-      {summary.prs?.length>0&&(<div style={{background:P.roseLite,border:`1.5px solid ${P.rosePrimary}`,borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"flex-start",gap:8}}>
-        <IcTrophy c={P.roseDark} s={14}/>
-        <div>
-          <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseDark,textTransform:"uppercase",marginBottom:3}}>New Personal Record</p>
-          {summary.prs.map(n=><p key={n} style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>{n}</p>)}
-        </div>
-      </div>)}
-      <div className="card" style={{marginBottom:10}}>
-        <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Session Recap</p>
-        {active?.exercises.map(ex=>{
-          const d=summary.csets?.[ex.id]||0;
-          return(<div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${P.roseLite}`}}>
-            <span style={{fontSize:11,color:d>=ex.sets?P.roseDeep:P.roseMid}}>{ex.name}</span>
-            <div style={{display:"flex",alignItems:"center",gap:5}}>
-              <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'"}}>{d}/{ex.sets}</span>
-              {d>=ex.sets&&<IcCheck c={P.roseDark} s={11}/>}
+      {/* Panels — same roseLite background, 20px/14px padding, 10px gap as Stats */}
+      <div style={{flex:1,overflowY:"auto",overflowX:"hidden",background:P.roseLite,padding:"20px 14px 32px",display:"flex",flexDirection:"column",gap:10}}>
+        {/* Stat chips — matches Today tab stat row sizing */}
+        <div style={{display:"flex",gap:8,flexShrink:0}}>
+          {([[IcClock,fmtDur(summary.duration),"Time"],[IcFire,`~${summary.calories}`,("kcal" as string)],[IcTrain,`${doneSets}/${totSets}`,"Sets"]] as [any,string,string][]).map(([Ic,v,l])=>(
+            <div key={l} style={{flex:1,background:P.white,borderRadius:14,padding:"14px 8px",textAlign:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
+              <div style={{display:"flex",justifyContent:"center",marginBottom:6}}><Ic c={P.roseDark} s={18}/></div>
+              <div className="mono" style={{fontSize:20,color:P.roseDark,lineHeight:1,marginBottom:4}}>{v}</div>
+              <div style={{fontSize:9,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.2em",fontWeight:500}}>{l}</div>
             </div>
-          </div>);
-        })}
-      </div>
-      <div style={{background:P.roseLite,borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",gap:8,alignItems:"flex-start"}}>
-        <IcProtein c={P.roseDark} s={15}/>
-        <div>
-          <p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginBottom:2}}>Nutrition reminder</p>
-          <p style={{fontSize:11,color:P.roseMid,fontStyle:"italic",lineHeight:1.55}}>
-            {lowProtein?"Most days this week protein was low. A shake right now = easy 30g. Your muscles need it after this session.":"Aim for ~30g protein within the next hour."}
+          ))}
+        </div>
+        {/* PR banner */}
+        {summary.prs?.length>0&&(<div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Personal Records</p>
+            <IcTrophy c={P.roseDark} s={14}/>
+          </div>
+          {summary.prs.map(n=>(
+            <div key={n} style={{display:"flex",alignItems:"center",gap:10,padding:"5px 0"}}>
+              <IcArrowUp c={P.roseDark} s={12}/>
+              <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{n}</span>
+            </div>
+          ))}
+        </div>)}
+        {/* Session recap */}
+        <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:4}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Session Recap</p>
+          </div>
+          {active?.exercises.map(ex=>{
+            const d=summary.csets?.[ex.id]||0;
+            return(<div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:`1px solid ${P.roseLite}`}}>
+              <span style={{fontSize:13,color:d>=ex.sets?P.roseDeep:P.roseMid,fontWeight:d>=ex.sets?500:400}}>{ex.name}</span>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span className="mono" style={{fontSize:13,color:P.roseDark}}>{d}/{ex.sets}</span>
+                {d>=ex.sets&&<IcCheck c={P.roseDark} s={12}/>}
+              </div>
+            </div>);
+          })}
+        </div>
+        {/* Nutrition */}
+        <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:12}}>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Nutrition</p>
+            <IcProtein c={P.roseDark} s={14}/>
+          </div>
+          <p style={{fontSize:13,color:P.roseDeep,lineHeight:1.6}}>
+            {lowProtein?"Protein was low most days this week. A shake now = easy 30g — your muscles need it.":"Aim for ~30g protein within the next hour to support recovery."}
           </p>
         </div>
-      </div>
-      <div style={{background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:12,padding:"10px 14px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <div style={{display:"flex",gap:8,alignItems:"center"}}>
-          <IcWeight c={P.roseMid} s={14}/>
-          <p style={{fontSize:11,color:P.roseMid,fontStyle:"italic"}}>
-            {data.bodyLog.length?`Last logged ${Math.floor((Date.now()-new Date(data.bodyLog[data.bodyLog.length-1].date))/86400000)||0}d ago`:"No stats logged yet"}
-          </p>
+        {/* Log stats */}
+        <div style={{background:P.white,borderRadius:14,padding:"14px 20px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+          <div>
+            <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>Body Stats</p>
+            <p style={{fontSize:13,color:P.roseDeep}}>
+              {data.bodyLog.length?`Last logged ${Math.floor((Date.now()-new Date(data.bodyLog[data.bodyLog.length-1].date))/86400000)||0}d ago`:"No stats logged yet"}
+            </p>
+          </div>
+          <button onClick={()=>setLogModal(true)} style={{background:P.roseDark,border:"none",borderRadius:20,padding:"8px 16px",fontSize:11,color:"white",cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em",flexShrink:0}}>Log stats</button>
         </div>
-        <button onClick={()=>setLogModal(true)} style={{background:"none",border:`1px solid ${P.roseDark}`,borderRadius:20,padding:"4px 12px",fontSize:10,color:P.roseDark,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.05em"}}>Log stats</button>
+        <button className="btnP" style={{flexShrink:0}} onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);startTimeRef.current=null;finishingRef.current=false;lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
       </div>
-      <button className="btnP" onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);startTimeRef.current=null;finishingRef.current=false;lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
-    </div>
-  </div>);
+    </div>);
   };
 
   // ── DEMO MODAL ────────────────────────────────────────────────────────────
