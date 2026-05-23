@@ -287,6 +287,7 @@ export default function App(){
   const[summary,setSummary]=useState(null);
   const[rest,setRest]=useState(null);
   const[swapModal,setSwapModal]=useState(null);
+  const[swapSelected,setSwapSelected]=useState(null);
   const[logModal,setLogModal]=useState(false);
   const[progressModal,setProgressModal]=useState(null); // "chart"|"week"|"strength"|"milestones"
   const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"
@@ -804,7 +805,7 @@ export default function App(){
           <button onClick={()=>setModal(ex)} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <IcInfo c={P.roseMid} s={13}/> How to
           </button>
-          {ex.swaps?.length>0&&(<button onClick={()=>setSwapModal(ex)} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
+          {ex.swaps?.length>0&&(<button onClick={()=>{setSwapSelected(null);setSwapModal(ex);}} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5}}>
             <IcSwap c={P.roseMid} s={13}/> Swap
           </button>)}
         </div>
@@ -919,21 +920,21 @@ export default function App(){
   // ── SWAP MODAL ────────────────────────────────────────────────────────────
   const SwapModal=()=>{
     if(!swapModal)return null;
-    const[selected,setSelected]=useState(null);
-    const doSwap=()=>{if(!selected)return;setSess(prev=>({...prev,swapped:{...prev.swapped,[swapModal.id]:selected}}));setSwapModal(null);};
-    return(<div className="mo" onClick={()=>setSwapModal(null)}>
+    const doSwap=()=>{if(!swapSelected)return;setSess(prev=>({...prev,swapped:{...prev.swapped,[swapModal.id]:swapSelected}}));setSwapModal(null);setSwapSelected(null);};
+    const close=()=>{setSwapModal(null);setSwapSelected(null);};
+    return(<div className="mo" onClick={close}>
       <div className="ms sl" onClick={e=>e.stopPropagation()}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
           <div style={{display:"flex",alignItems:"center",gap:6}}><IcSwap c={P.roseMid} s={14}/><span style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase"}}>Equipment taken?</span></div>
-          <button onClick={()=>setSwapModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={16}/></button>
+          <button onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={16}/></button>
         </div>
         <h3 className="serif" style={{fontSize:19,color:P.roseDeep,marginBottom:4}}>{swapModal.name}</h3>
         <p style={{fontSize:11,color:P.roseMid,marginBottom:14,lineHeight:1.5}}>Session-only swap — resets automatically next time.</p>
         {swapModal.swaps.map((sw,i)=>(
-          <div key={i} onClick={()=>setSelected(sw.name)} style={{border:`1.5px solid ${selected===sw.name?P.roseDark:P.roseLite}`,borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",background:selected===sw.name?P.roseLite:P.white,transition:"all 0.14s"}}>
+          <div key={i} onClick={()=>setSwapSelected(sw.name)} style={{border:`1.5px solid ${swapSelected===sw.name?P.roseDark:P.roseLite}`,borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",background:swapSelected===sw.name?P.roseLite:P.white,transition:"all 0.14s"}}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${selected===sw.name?P.roseDark:P.roseMid}`,background:selected===sw.name?P.roseDark:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-                {selected===sw.name&&<div style={{width:6,height:6,borderRadius:"50%",background:"white"}}/>}
+              <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${swapSelected===sw.name?P.roseDark:P.roseMid}`,background:swapSelected===sw.name?P.roseDark:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                {swapSelected===sw.name&&<div style={{width:6,height:6,borderRadius:"50%",background:"white"}}/>}
               </div>
               <div>
                 <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{sw.name}</p>
@@ -943,8 +944,8 @@ export default function App(){
           </div>
         ))}
         <div style={{display:"flex",gap:8,marginTop:14}}>
-          <button className="btnG" style={{flex:1}} onClick={()=>setSwapModal(null)}>CANCEL</button>
-          <button className="btnP" style={{flex:2,opacity:selected?1:0.4}} onClick={doSwap}>SWAP</button>
+          <button className="btnG" style={{flex:1}} onClick={close}>CANCEL</button>
+          <button className="btnP" style={{flex:2,opacity:swapSelected?1:0.4}} onClick={doSwap}>SWAP</button>
         </div>
       </div>
     </div>);
