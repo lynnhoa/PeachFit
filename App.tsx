@@ -166,8 +166,8 @@ function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
   if(hitWeight)return`${gw} kg — you hit your weight goal. The work isn't over, it's just beginning.`;
   if(hitWaist)return`${gws} cm — waist goal reached. Keep pushing. There's always a next level.`;
   if(!sessions.length)return"Your journey starts today. Every rep counts.";
-  const last=sessions[sessions.length-1];
-  const daysSince=Math.floor((Date.now()-new Date(last.date))/86400000);
+  const lastSession=sessions[sessions.length-1];
+  const daysSince=Math.floor((Date.now()-new Date(lastSession.date))/86400000);
   if(daysSince>14)return"More than two weeks since your last session. Weights will be slightly reduced to protect you — restart steady.";
   if(daysSince>10)return"Welcome back. Starting steady — same weights as before.";
   const pr=getProteinHitRate(nutritionLog);
@@ -179,9 +179,9 @@ function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
   if(counts.glutes>=2&&counts.core===0)return"You've trained glutes twice — consider Core today for balance.";
   if(daysSince>=7)return`It's been ${daysSince} days since your last session — your body is ready. Pick any session and go.`;
   if(thisWeek.length>=3)return`Strong 7 days — ${thisWeek.length} sessions done. You're building the habit.`;
-  const lastType=SESSIONS.find(s=>s.id===last.sessionId);
+  const lastType=SESSIONS.find(s=>s.id===lastSession.sessionId);
   if(lastType){
-    const next=SESSIONS.filter(s=>s.id!==last.sessionId).sort((a,b)=>{
+    const next=SESSIONS.filter(s=>s.id!==lastSession.sessionId).sort((a,b)=>{
       const tA=sessions.filter(x=>x.sessionId===a.id).slice(-1)[0];
       const tB=sessions.filter(x=>x.sessionId===b.id).slice(-1)[0];
       return(tA?new Date(tA.date).getTime():0)-(tB?new Date(tB.date).getTime():0);
