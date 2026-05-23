@@ -928,22 +928,29 @@ export default function App(){
     const Anim=A[modal.anim]||A.cd;
     return(<div className="mo" onClick={()=>setModal(null)}>
       <div className="ms sl" onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <h3 className="serif" style={{fontSize:18,color:P.roseDeep,fontWeight:600,flex:1}}>{modal.name}</h3>
-          <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+        {/* Handle bar */}
+        <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+        {/* Title row */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+          <div style={{flex:1,paddingRight:12}}>
+            <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:5}}>{modal.muscle}</p>
+            <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{modal.name}</h3>
+          </div>
+          <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
-        <div style={{background:P.bg,borderRadius:14,padding:"16px",display:"flex",justifyContent:"center",alignItems:"center",marginBottom:12,minHeight:100}}><Anim/></div>
-        <span className="tag" style={{background:P.roseLite,color:P.roseDark,marginBottom:12,display:"block",width:"fit-content"}}>{modal.muscle}</span>
-        {[["START POSITION",modal.start,IcPin,"none"],["THE MOVE",modal.cue,IcMove,"none"],["LYNN'S TIP",modal.tip,IcStar,"tip"],["DON'T",modal.dont,IcDont,"none"]].map(([lb,ct,Ic,t])=>(
-          <div key={lb} style={{marginBottom:8,padding:"9px 11px",background:t==="tip"?P.roseLite:P.bg,borderRadius:9,borderLeft:t==="tip"?`2.5px solid ${P.roseDark}`:"none"}}>
-            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-              <Ic c={P.roseDark} s={12}/>
-              <p style={{fontSize:7,letterSpacing:"0.17em",color:P.roseDark,textTransform:"uppercase",fontWeight:600}}>{lb}</p>
+        {/* Animation */}
+        <div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>
+        {/* Instruction rows */}
+        {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].map(([lb,ct,Ic,isTip])=>(
+          <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+              <Ic c={P.roseDark} s={13}/>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseDark,textTransform:"uppercase",fontWeight:500}}>{lb}</p>
             </div>
-            <p style={{fontSize:11,color:P.roseDeep,lineHeight:1.6,paddingLeft:18}}>{ct}</p>
+            <p style={{fontSize:13,color:P.roseDeep,lineHeight:1.55,paddingLeft:19}}>{ct}</p>
           </div>
         ))}
-        <div style={{display:"flex",gap:8,marginTop:8}}>
+        <div style={{display:"flex",gap:8,marginTop:12}}>
           <button className="btnG" style={{flex:1}} onClick={()=>setModal(null)}>CLOSE</button>
           <button className="btnP" style={{flex:2}} onClick={()=>setModal(null)}>GOT IT</button>
         </div>
@@ -958,21 +965,27 @@ export default function App(){
     const close=()=>{setSwapModal(null);setSwapSelected(null);};
     return(<div className="mo" onClick={close}>
       <div className="ms sl" onClick={e=>e.stopPropagation()}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:6}}><IcSwap c={P.roseMid} s={14}/><span style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase"}}>Equipment taken?</span></div>
-          <button onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={16}/></button>
+        <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+          <div style={{flex:1,paddingRight:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+              <IcSwap c={P.roseMid} s={13}/>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Equipment taken?</p>
+            </div>
+            <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{swapModal.name}</h3>
+          </div>
+          <button onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
-        <h3 className="serif" style={{fontSize:19,color:P.roseDeep,marginBottom:4}}>{swapModal.name}</h3>
-        <p style={{fontSize:11,color:P.roseMid,marginBottom:14,lineHeight:1.5}}>Session-only swap — resets automatically next time.</p>
+        <p style={{fontSize:12,color:P.roseMid,marginBottom:16,lineHeight:1.5}}>Session-only swap — resets automatically next time.</p>
         {swapModal.swaps.map((sw,i)=>(
-          <div key={i} onClick={()=>setSwapSelected(sw.name)} style={{border:`1.5px solid ${swapSelected===sw.name?P.roseDark:P.roseLite}`,borderRadius:12,padding:"11px 13px",marginBottom:7,cursor:"pointer",background:swapSelected===sw.name?P.roseLite:P.white,transition:"all 0.14s"}}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <div style={{width:16,height:16,borderRadius:"50%",border:`2px solid ${swapSelected===sw.name?P.roseDark:P.roseMid}`,background:swapSelected===sw.name?P.roseDark:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div key={i} onClick={()=>setSwapSelected(sw.name)} style={{border:`1.5px solid ${swapSelected===sw.name?P.roseDark:P.roseLite}`,borderRadius:12,padding:"12px 14px",marginBottom:8,cursor:"pointer",background:swapSelected===sw.name?P.roseLite:P.white,transition:"all 0.14s"}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${swapSelected===sw.name?P.roseDark:P.roseMid}`,background:swapSelected===sw.name?P.roseDark:"transparent",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
                 {swapSelected===sw.name&&<div style={{width:6,height:6,borderRadius:"50%",background:"white"}}/>}
               </div>
               <div>
-                <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{sw.name}</p>
-                <p style={{fontSize:10,color:P.roseMid,marginTop:1}}>{sw.note}</p>
+                <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,marginBottom:2}}>{sw.name}</p>
+                <p style={{fontSize:11,color:P.roseMid,lineHeight:1.4}}>{sw.note}</p>
               </div>
             </div>
           </div>
@@ -1602,45 +1615,49 @@ export default function App(){
     const ds=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):0;
     return(<div className="mo" onClick={()=>setPlanModal(null)}>
       <div className="ms sl" onClick={e=>e.stopPropagation()} style={{maxHeight:"88dvh"}}>
+        <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
         {/* Header */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:30,height:30,borderRadius:8,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <SIcon c={pl.color} s={15}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+          <div style={{flex:1,paddingRight:12}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+              <div style={{width:26,height:26,borderRadius:7,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                <SIcon c={pl.color} s={13}/>
+              </div>
+              <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>{pl.tag}</p>
             </div>
-            <h3 className="serif" style={{fontSize:18,color:P.roseDeep,fontWeight:600}}>{pl.name}</h3>
+            <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{pl.name}</h3>
           </div>
-          <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+          <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
-        <p style={{fontSize:10,color:P.roseMid,marginBottom:14}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
-        {/* Exercise list */}
-        {ds>14&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"9px 13px",marginBottom:12,display:"flex",alignItems:"center",gap:8}}>
-          <span style={{fontSize:13}}>⚠️</span>
-          <p style={{fontSize:11,color:"#7a5c00",lineHeight:1.5}}>You were away {ds} days — weights reduced 10% to ease you back in. They'll climb again from here.</p>
+        <p style={{fontSize:12,color:P.roseMid,marginBottom:16,lineHeight:1.5}}>{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+        {/* Away warning */}
+        {ds>14&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
+          <span style={{fontSize:14,flexShrink:0}}>⚠️</span>
+          <p style={{fontSize:12,color:"#7a5c00",lineHeight:1.55}}>Away {ds} days — weights reduced 10% to ease you back in. They'll climb again from here.</p>
         </div>}
-        <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:14}}>
+        {/* Exercise list */}
+        <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:16}}>
           {pl.exercises.map((ex,i)=>{
             const cw=getWeight(ex,data.sessions,pl.id);
             const pr=getPR(ex,data.sessions);
             const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
-            // isDown: detect if this specific exercise had a 14+ day gap (getWeight handles reduction internally)
             const exLastDone=data.sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined).slice(-1)[0];
             const exDaysSince=exLastDone?Math.floor((Date.now()-new Date(exLastDone.date))/86400000):0;
             const isDown=exDaysSince>14&&!ex.bw&&typeof cw==="number";
-            return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"9px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:8}}>
-              <span style={{fontSize:10,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:14,textAlign:"right"}}>{i+1}</span>
+            return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:10}}>
+              <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
               <div style={{flex:1,minWidth:0}}>
-                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
-                <p style={{fontSize:9,color:P.roseMid}}>{ex.muscle}</p>
+                <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
+                <p style={{fontSize:11,color:P.roseMid,marginTop:2}}>{ex.muscle}</p>
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
-                <p className="mono" style={{fontSize:11,color:P.roseDark}}>{ex.sets}×{ex.reps}</p>
-                <p style={{fontSize:10,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw}kg`}{isUp?" ↑":isDown?" ↓":""}</p>
+                <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
+                <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw} kg`}{isUp?" ↑":isDown?" ↓":""}</p>
               </div>
             </div>);
           })}
         </div>
-        <button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP" style={{fontSize:12,padding:"12px"}}>START {pl.name.toUpperCase()} →</button>
+        <button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP">START {pl.name.toUpperCase()} →</button>
       </div>
     </div>);
   };
