@@ -1156,20 +1156,20 @@ export default function App(){
             <span style={{fontSize:8,color:P.roseMid}}>tap for all ↗</span>
           </div>
           <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly"}}>
-            {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex,i,arr)=>{
+            {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex,i)=>{
               const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
               const pr=allEx?getPR(allEx,data.sessions):null;
               const cur=allEx?getWeight(allEx,data.sessions):null;
               const startKg=allEx?.kg||0;
               const pct=pr&&startKg?Math.min(100,((pr-startKg)/startKg)*100):0;
               const isPR=cur&&pr&&cur>=pr;
-              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:10,borderBottom:i<arr.length-1?`1px solid ${P.roseLite}`:"none",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0}}>
-                <span style={{flex:1,fontSize:12,color:P.roseDeep,fontWeight:500,lineHeight:1}}>{ex.name}</span>
-                <div style={{width:60,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
+              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderTop:i>0?`1px solid ${P.roseLite}`:"none"}}>
+                <span style={{flex:1,fontSize:13,color:P.roseMid,fontWeight:500,lineHeight:1}}>{ex.name}</span>
+                <div style={{width:56,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
                   <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3}}/>
                 </div>
-                <span className="mono" style={{fontSize:12,color:P.roseDeep,minWidth:60,textAlign:"right",flexShrink:0}}>
-                  {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?<em style={{color:P.roseDark,fontStyle:"normal"}}> ✦</em>:""}
+                <span className="mono" style={{fontSize:13,color:P.roseDark,minWidth:56,textAlign:"right",flexShrink:0}}>
+                  {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?<span style={{color:P.rosePrimary,fontSize:11}}> ✦</span>:""}
                 </span>
               </div>);
             })}
