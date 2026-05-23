@@ -1,19 +1,13 @@
 {
   "name": "PeachFit",
   "short_name": "PeachFit",
-  "description": "Personal progressive overload gym tracker",
+  "description": "Your personal workout companion",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#fce8ec",
-  "theme_color": "#3d2028",
-  "orientation": "portrait-primary",
+  "background_color": "#fdf6f7",
+  "theme_color": "#f2a0b0",
+  "orientation": "portrait",
   "icons": [
-    {
-      "src": "apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
-    },
     {
       "src": "icon-192.png",
       "sizes": "192x192",
