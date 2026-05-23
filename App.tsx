@@ -1445,11 +1445,11 @@ export default function App(){
               {week.map((cell,di)=>{
                 const bg=cell?cellBg[cell.id]+"dd":P.roseLite+"99";
                 const txt=cell?cellTxt[cell.id]:"";
-                const txtCol=cell&&cell.id==="glutes"?P.roseDeep:"white";
+                const txtCol="rgba(255,255,255,0.90)";
                 return(
                   <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
                     <div style={{width:"100%",paddingBottom:"100%",position:"relative",borderRadius:5,background:bg}}>
-                      <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:7,fontWeight:700,color:txtCol}}>{txt}</span>
+                      <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:txtCol}}>{txt}</span>
                     </div>
                   </div>
                 );
