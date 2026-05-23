@@ -203,6 +203,7 @@ function getETA(sessions,profile,bodyLog=[]){
     const rateWk=(wtEntries[0].weight-wtEntries[wtEntries.length-1].weight)/Math.max(spanWks,0.5);
     const remaining=wtEntries[wtEntries.length-1].weight-gw;
     if(rateWk<=0)weeksToGoalWeight="↑ gaining";
+    else if(remaining<=0)weeksToGoalWeight="✓ reached";
     else weeksToGoalWeight=Math.ceil(remaining/rateWk);
   }
 
@@ -214,6 +215,7 @@ function getETA(sessions,profile,bodyLog=[]){
     const rateWk=(wsEntries[0].waist-wsEntries[wsEntries.length-1].waist)/Math.max(spanWks,0.5);
     const remaining=wsEntries[wsEntries.length-1].waist-gws;
     if(rateWk<=0)weeksToGoalWaist="↑ gaining";
+    else if(remaining<=0)weeksToGoalWaist="✓ reached";
     else weeksToGoalWaist=Math.ceil(remaining/rateWk);
   }
 
@@ -373,6 +375,7 @@ export default function App(){
   const startSession=pl=>{
     const initWeights={};
     pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions,pl.id);});
+    startTimeRef.current=null;finishingRef.current=false;
     setActive(pl);setElapsed(0);lastSecRef.current=-1;
     setSess({comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
     setSummary(null);setRest(null);setTab("today");
@@ -1000,8 +1003,8 @@ export default function App(){
     const bf=last?.bodyFat??null;
     const goalW=data.profile.goalWeight??45;
     const goalWs=data.profile.goalWaist??63;
-    const wtPct=wt?Math.min(100,Math.max(0,((wtStart-wt)/(wtStart-goalW))*100)):0;
-    const wsPct=ws?Math.min(100,Math.max(0,((wsStart-ws)/(wsStart-goalWs))*100)):0;
+    const wtPct=wt?Math.min(100,Math.max(0,((wtStart-wt)/(wtStart-goalW||1))*100)):0;
+    const wsPct=ws?Math.min(100,Math.max(0,((wsStart-ws)/(wsStart-goalWs||1))*100)):0;
     const weekAgo=Date.now()-7*86400000;
     const weekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
     const weekTypes=new Set(weekSess.map(s=>s.sessionId));
