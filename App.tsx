@@ -107,7 +107,7 @@ const SESSIONS=[
 
 // ── STORAGE ──────────────────────────────────────────────────────────────────
 const KEY="lynn_gym_v3";
-const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,startWeight:null,startWaist:null};
+const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,goalBodyFat:20,startWeight:null,startWaist:null};
 const ld=()=>{
   try{
     const raw=JSON.parse(localStorage.getItem(KEY))||{};
@@ -1016,7 +1016,8 @@ export default function App(){
       if(first&&e.waist&&first.waist&&e.waist<first.waist-0.9&&!ms.find(m=>m.id==="ws1"))ms.push({id:"ws1",icon:"waist",title:"First centimetre off the waist",sub:`${first.waist} → ${e.waist} cm — the core work is showing.`});
       if(first&&e.weight!=null&&e.weight<=(profile?.goalWeight??45)&&!ms.find(m=>m.id==="goalW"))ms.push({id:"goalW",icon:"trophy",title:`Goal weight reached — ${e.weight} kg`,sub:"You hit your target. Now set a new one and keep going."});
       if(first&&e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:"63 cm. You earned it. There's always a next level."});
-      if(e.bodyFat&&e.bodyFat<23&&!ms.find(m=>m.id==="bf23"))ms.push({id:"bf23",icon:"fire",title:"Under 23% body fat",sub:"Visible toning territory. You're in it."});
+      const bfGoal=profile?.goalBodyFat??23;
+      if(e.bodyFat&&e.bodyFat<=bfGoal&&!ms.find(m=>m.id==="bf23"))ms.push({id:"bf23",icon:"fire",title:`Under ${bfGoal}% body fat`,sub:"Visible toning territory. You're in it."});
     });
     const allExIds=SESSIONS.flatMap(s=>s.exercises.map(e=>e.id));
     allExIds.forEach(id=>{
@@ -1451,11 +1452,12 @@ export default function App(){
     const profile=data.profile||DEFAULT_PROFILE;
     const[gw,setGw]=useState((profile.goalWeight??45).toString());
     const[gs,setGs]=useState((profile.goalWaist??63).toString());
+    const[gbf,setGbf]=useState((profile.goalBodyFat??20).toString());
     const[af,setAf]=useState(null);
     const inputRef=useRef(null);
     useEffect(()=>{if(inputRef.current)inputRef.current.focus();},[af]);
     const canSaveGoals=!!(gw&&parseFloat(gw)>0&&gs&&parseFloat(gs)>0);
-    const save=()=>{if(!canSaveGoals)return;persist({...data,profile:{...profile,goalWeight:parseFloat(gw),goalWaist:parseFloat(gs)}});setMeModal(null);};
+    const save=()=>{if(!canSaveGoals)return;persist({...data,profile:{...profile,goalWeight:parseFloat(gw),goalWaist:parseFloat(gs),...(gbf&&{goalBodyFat:parseFloat(gbf)})}});setMeModal(null);};
     return(<div className="mo" onClick={()=>setMeModal(null)}><div className="ms sl" onClick={e=>e.stopPropagation()}>
       <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
@@ -1464,7 +1466,7 @@ export default function App(){
       </div>
       <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:18,lineHeight:1.5}}>Changes update your goal bars and ETA everywhere.</p>
       <div style={{display:"flex",gap:8,marginBottom:20}}>
-        {[["Goal weight","kg",gw,setGw],["Goal waist","cm",gs,setGs]].map(([label,unit,val,setVal])=>{
+        {([["Goal weight","kg",gw,setGw],["Goal waist","cm",gs,setGs],["Body fat","%",gbf,setGbf]] as [string,string,string,any][]).map(([label,unit,val,setVal])=>{
           const isAf=af===label;
           return(<div key={label} onClick={()=>setAf(label)} style={{flex:1,background:isAf?P.white:P.bg,border:`1.5px solid ${isAf?P.roseDark:P.roseLite}`,borderRadius:14,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s"}}>
             <p style={{fontSize:8,letterSpacing:"0.14em",color:isAf?P.roseDark:P.roseMid,textTransform:"uppercase",marginBottom:6}}>{label}</p>
@@ -1505,7 +1507,6 @@ export default function App(){
   const Me=()=>{
     const profile=data.profile||DEFAULT_PROFILE;
     const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
-    const bf=last?.bodyFat??null;
 
     return(<>
       <div className="screen-full" style={{background:P.roseDeep}}>
@@ -1541,7 +1542,7 @@ export default function App(){
               </div>
             </div>
             <div style={{display:"flex",gap:10}}>
-              {[["Goal weight",`${profile.goalWeight??45} kg`,IcWeight],["Goal waist",`${profile.goalWaist??63} cm`,IcWaist],["Body fat",bf?`${bf}%`:"—",IcFire]].map(([label,val,Ic])=>(
+              {[["Goal weight",`${profile.goalWeight??45} kg`,IcWeight],["Goal waist",`${profile.goalWaist??63} cm`,IcWaist],["Body fat",`${profile.goalBodyFat??20}%`,IcFire]].map(([label,val,Ic])=>(
                 <div key={label} style={{flex:1,textAlign:"center",background:P.bg,borderRadius:10,padding:"10px 4px"}}>
                   <div style={{display:"flex",justifyContent:"center",marginBottom:4}}><Ic c={P.roseDark} s={15}/></div>
                   <p className="mono" style={{fontSize:17,color:P.roseDark,lineHeight:1}}>{val}</p>
