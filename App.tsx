@@ -380,11 +380,12 @@ export default function App(){
   const logBodyEntry=entry=>{
     const today=new Date().toISOString().slice(0,10);
     const existing=data.bodyLog.find(e=>e.date.slice(0,10)===today);
-    // Merge into existing same-day entry — never wipe fields logged earlier today
+    // Same day → merge (correction). New day → new entry (progress).
     const merged=existing
       ?{...existing,...entry,date:new Date().toISOString()}
       :{date:new Date().toISOString(),...entry};
-    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),merged];
+    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),merged]
+      .sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
     persist({...data,bodyLog:newLog});
   };
 
@@ -898,7 +899,7 @@ export default function App(){
             {lowProtein?"Protein was low most days this week. A shake now = easy 30g — your muscles need it.":"Aim for ~30g protein within the next hour to support recovery."}
           </p>
         </div>
-        {/* Log stats */}
+        {/* Body Stats — read only, directs user to Stats tab */}
         <div style={{background:P.white,borderRadius:14,padding:"10px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
           <div>
             <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>Body Stats</p>
@@ -906,7 +907,7 @@ export default function App(){
               {data.bodyLog.length?`Last logged ${Math.floor((Date.now()-new Date(data.bodyLog[data.bodyLog.length-1].date))/86400000)||0}d ago`:"No stats logged yet"}
             </p>
           </div>
-          <button onClick={()=>setLogModal("Weight")} style={{background:P.roseDark,border:"none",borderRadius:20,padding:"8px 16px",fontSize:11,color:"white",cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em",flexShrink:0}}>Log stats</button>
+          <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic"}}>log via Stats tab</p>
         </div>
         <button className="btnP" style={{flexShrink:0}} onClick={()=>{setSummary(null);setActive(null);setSess(null);setElapsed(0);startTimeRef.current=null;finishingRef.current=false;lastSecRef.current=-1;setTab("today");}}>BACK TO HOME</button>
       </div>
@@ -1331,7 +1332,6 @@ export default function App(){
         })()}
       </div>}
       {coreLine&&<div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 12px 12px 0",padding:"10px 14px",marginBottom:14}}><p style={{fontSize:11,color:P.roseDeep,fontStyle:"italic",lineHeight:1.6}}>{coreLine}</p></div>}
-      <button className="btnP" onClick={()=>{close();setLogModal("Weight");}}>+ Log today's stats</button>
     </div></div>);
   };
 
