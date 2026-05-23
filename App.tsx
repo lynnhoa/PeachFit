@@ -1116,27 +1116,58 @@ export default function App(){
           {ws!=null&&ws<=goalWs&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginTop:8,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
         </div>
 
-        {/* PANEL 2 — This week */}
-        <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"10px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:7}}>
-            <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week</p>
-            <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(212,120,138,0.1)",borderRadius:14,padding:"3px 10px"}}>
-              <div style={{width:5,height:5,borderRadius:"50%",background:P.roseDark}}/>
-              <span style={{fontSize:11,color:P.roseDark,fontWeight:500}}>
-                {weekSess.length} of 3{weekSess.length<3?" · "+[["glutes","Glutes"],["core","Core"],["shape","Shape"]].filter(([id])=>!weekTypes.has(id)).map(([,n])=>n).join(", "):""}
-              </span>
+        {/* PANEL 2 — This week + Rhythm */}
+        {(()=>{
+          const fourWeeksAgo=Date.now()-28*86400000;
+          const sessTypes=[["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][];
+          const daysSinceLast=(id:string)=>{
+            const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
+            if(!last)return null;
+            return Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
+          };
+          const rhythm28=["glutes","core"].map(id=>{
+            const sess28=data.sessions.filter(s=>s.sessionId===id&&new Date(s.date).getTime()>fourWeeksAgo);
+            return{id,count:sess28.length};
+          });
+          return(
+          <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"10px 14px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            {/* header */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:6,borderBottom:`1px solid ${P.roseLite}`,marginBottom:7,flexShrink:0}}>
+              <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week · Rhythm</p>
+              <span style={{fontSize:9,color:P.roseMid,opacity:0.7}}>↗</span>
             </div>
-          </div>
-          <div style={{display:"flex",gap:8,flex:1,minHeight:0}}>
-            {([["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][]).map(([id,label,Ic,col])=>{
-              const done=weekTypes.has(id);
-              return(<div key={id} style={{flex:1,borderRadius:10,padding:"7px 4px",textAlign:"center",border:`1.5px solid ${done?col:col+"22"}`,background:done?col+"18":col+"0d",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
-                <Ic c={done?col:col+"88"} s={16}/>
-                <p style={{fontSize:9,color:done?col:P.roseMid,fontWeight:done?600:500,letterSpacing:"0.04em"}}>{label.toUpperCase()}{done?" ✓":""}</p>
-              </div>);
-            })}
-          </div>
-        </div>
+            {/* This week chips */}
+            <div style={{display:"flex",gap:6,marginBottom:7,flexShrink:0}}>
+              {sessTypes.map(([id,label,Ic,col])=>{
+                const done=weekTypes.has(id);
+                const d=daysSinceLast(id);
+                return(<div key={id} style={{flex:1,borderRadius:9,padding:"5px 3px",textAlign:"center",border:`1.5px solid ${done?col:col+"22"}`,background:done?col+"16":col+"08",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                  <Ic c={done?col:col+"66"} s={14}/>
+                  <p style={{fontSize:8,color:done?col:P.roseMid,fontWeight:done?600:500,letterSpacing:"0.04em",lineHeight:1}}>{label.toUpperCase()}</p>
+                  <p style={{fontSize:8,color:done?col:P.roseMid,fontWeight:600,lineHeight:1}}>{done?"✓":"○"}</p>
+                </div>);
+              })}
+            </div>
+            {/* Rhythm divider */}
+            <div style={{borderTop:`1px solid ${P.roseLite}`,paddingTop:6,flexShrink:0}}>
+              {rhythm28.map(({id,count})=>{
+                const label=id==="glutes"?"Glutes":"Core";
+                const dots=[...Array(4)].map((_,i)=>i<count);
+                const d=daysSinceLast(id);
+                const agoTxt=d===null?"never":d===0?"today":d===1?"yesterday":`${d}d ago`;
+                return(<div key={id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+                  <span style={{fontSize:8,color:P.roseDeep,fontWeight:500,width:38,flexShrink:0}}>{label}</span>
+                  <div style={{display:"flex",gap:3,flex:1}}>
+                    {dots.map((on,i)=>(
+                      <div key={i} style={{width:8,height:8,borderRadius:"50%",background:on?P.roseDark:"rgba(212,120,138,0.15)",flexShrink:0}}/>
+                    ))}
+                  </div>
+                  <span style={{fontSize:8,color:P.roseMid,flexShrink:0}}>{count}× · {agoTxt}</span>
+                </div>);
+              })}
+            </div>
+          </div>);
+        })()}
 
         {/* PANEL 3 — Strength PRs */}
         <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.4 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
@@ -1306,46 +1337,127 @@ export default function App(){
     const milestones=getMilestones(data.sessions,data.bodyLog,data.profile);
     const weekAgo=Date.now()-7*86400000;
     const weekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
-    const totalSets=weekSess.reduce((a,s)=>a+Object.values(s.comp||{}).reduce((b,v)=>b+(v||0),0),0);
-    const totalCal=weekSess.reduce((a,s)=>a+(s.calories||0),0);
 
     if(progressModal==="week"){
-      const daysStr=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+      const fourWeeksAgo=Date.now()-28*86400000;
+      const sess28=data.sessions.filter(s=>new Date(s.date).getTime()>fourWeeksAgo);
+      const sessTypes=[
+        {id:"glutes",label:"Glutes",Ic:IcGlutes,col:P.rosePrimary},
+        {id:"core",   label:"Core",  Ic:IcCore,  col:P.roseDark},
+        {id:"shape",  label:"Shape", Ic:IcShape, col:P.accent},
+      ];
+      const daysSinceLast=(id:string)=>{
+        const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
+        if(!last)return null;
+        return Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
+      };
+      const agoStr=(d:number|null)=>d===null?"Never done":d===0?"Today":d===1?"Yesterday":`${d} days ago`;
+
+      // 4-week heatmap: build array of {date, sessionId} for last 28 days
+      // Map each to week index (0=oldest,3=this week) and day-of-week (0=Mon…6=Sun)
+      const hmap:({id:string}|null)[][]=[[],[],[],[]]; // 4 weeks, each = array of 7 days
+      for(let w=0;w<4;w++)hmap[w]=Array(7).fill(null);
+      sess28.forEach(s=>{
+        const d=new Date(s.date);
+        const daysAgo=Math.floor((Date.now()-d.getTime())/86400000);
+        const wk=3-Math.floor(daysAgo/7); // 3=this week, 0=oldest
+        if(wk<0||wk>3)return;
+        const dow=(d.getDay()+6)%7; // 0=Mon,6=Sun
+        if(!hmap[wk][dow])hmap[wk][dow]={id:s.sessionId};
+      });
+      const cellCol={glutes:P.rosePrimary,core:P.roseDark,shape:P.accent};
+      const cellLbl={glutes:"G",core:"C",shape:"S"};
+      const wkLabel=["4 wk ago","3 wk ago","2 wk ago","This wk"];
+      // 28-day counts per type for rhythm chips
+      const counts28={glutes:sess28.filter(s=>s.sessionId==="glutes").length,core:sess28.filter(s=>s.sessionId==="core").length,shape:sess28.filter(s=>s.sessionId==="shape").length};
+      // Coach sentence
+      const weekG=weekTypes.has("glutes"),weekC=weekTypes.has("core"),weekS=weekTypes.has("shape");
+      const coachWk=weekG&&weekC&&weekS?"All three covered this week — this is exactly the pace that changes your body.":weekG&&weekC?"Glutes and core covered — your two main goals are both being worked. Add Shape for full balance.":weekG?"Glutes done. Add core next — waist work needs its own session.":weekC?"Core done. Hip thrusts next — glute shape needs consistent loading.":"Nothing logged this week yet. One session is enough to start — pick any.";
+
       return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
         <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>Last 7 days</h3>
+          <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>This week · Rhythm</h3>
           <button onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
+
+        {/* ── THIS WEEK: 3 session type cards ── */}
+        <p style={{fontSize:8,letterSpacing:"0.22em",textTransform:"uppercase",color:P.roseMid,fontWeight:500,marginBottom:10}}>This week</p>
         <div style={{display:"flex",gap:8,marginBottom:16}}>
-          {[[IcSessions,weekSess.length,"sessions"],[IcFire,`~${totalCal}`,"kcal"],[IcTrain,totalSets,"sets"]].map(([Ic,v,l])=>(
-            <div key={l} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:14,padding:"12px 8px",textAlign:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
-              <div style={{display:"flex",justifyContent:"center",marginBottom:5}}><Ic c={P.roseDark} s={16}/></div>
-              <div className="mono" style={{fontSize:18,color:P.roseDark,lineHeight:1,marginBottom:3}}>{v}</div>
-              <div style={{fontSize:8,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:500}}>{l}</div>
+          {sessTypes.map(({id,label,Ic,col})=>{
+            const done=weekTypes.has(id);
+            const d=daysSinceLast(id);
+            return(<div key={id} style={{flex:1,borderRadius:12,padding:"10px 6px",textAlign:"center",border:`1.5px solid ${done?col:col+"22"}`,background:done?col+"14":"transparent",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+              <Ic c={done?col:col+"55"} s={18}/>
+              <p style={{fontSize:8,letterSpacing:"0.1em",textTransform:"uppercase",color:done?col:P.roseMid,fontWeight:600,marginTop:2}}>{label}</p>
+              <p style={{fontSize:12,color:done?col:P.roseMid,fontWeight:700,lineHeight:1}}>{done?"✓":"○"}</p>
+              <p style={{fontSize:8,color:P.roseMid,lineHeight:1.2}}>{agoStr(d)}</p>
+            </div>);
+          })}
+        </div>
+
+        {/* ── DIVIDER ── */}
+        <div style={{borderTop:`1px solid ${P.roseLite}`,marginBottom:14}}/>
+
+        {/* ── RHYTHM: 28-day summary chips ── */}
+        <p style={{fontSize:8,letterSpacing:"0.22em",textTransform:"uppercase",color:P.roseMid,fontWeight:500,marginBottom:10}}>Your rhythm · last 28 days</p>
+        <div style={{display:"flex",gap:8,marginBottom:14}}>
+          {[
+            {label:"Sessions",val:sess28.length,sub:"total"},
+            {label:"Glutes",val:counts28.glutes+"×",sub:"sessions"},
+            {label:"Core",val:counts28.core+"×",sub:"sessions"},
+          ].map(({label,val,sub})=>(
+            <div key={label} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 2px 10px rgba(212,120,138,0.07)"}}>
+              <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:20,color:P.roseDark,lineHeight:1,marginBottom:2}}>{val}</p>
+              <p style={{fontSize:7,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:500}}>{label}</p>
+              <p style={{fontSize:7,color:P.roseMid}}>{sub}</p>
             </div>
           ))}
         </div>
-        {weekSess.length>0?(<div style={{marginBottom:14}}>{weekSess.map((s,i)=>{
-          const pl=SESSIONS.find(x=>x.id===s.sessionId);const d=new Date(s.date);const SIc=pl?SessIcon[pl.id]:null;
-          return(<div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${P.roseLite}`}}>
-            <div style={{width:32,height:32,borderRadius:10,background:pl?pl.color+"22":P.roseLite,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{SIc&&<SIc c={pl.color} s={16}/>}</div>
-            <div style={{flex:1}}>
-              <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{pl?.name||s.tag}</p>
-              <p style={{fontSize:10,color:P.roseMid,marginTop:2}}>{daysStr[d.getDay()]} · {Math.round((s.duration||0)/60)} min · ~{s.calories} kcal</p>
-            </div>
-            <IcCheck c={P.roseDark} s={14}/>
-          </div>);
-        })}</div>):<p style={{fontSize:12,color:P.roseMid,fontStyle:"italic",marginBottom:16,lineHeight:1.6}}>No sessions in the last 7 days. Head to Today and pick one.</p>}
-        {(()=>{const pr=getProteinHitRate(data.nutritionLog);return pr&&pr.total>0?(
-          <div style={{background:pr.rate>=3/7?"#f1f8f1":P.roseLite,border:`1.5px solid ${pr.rate>=3/7?"#a5d6a7":P.rosePrimary}`,borderRadius:14,padding:"12px 14px",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-            <IcProtein c={pr.rate>=3/7?"#2e7d32":P.roseDark} s={16}/>
-            <p style={{fontSize:12,color:pr.rate>=3/7?"#2e7d32":P.roseDeep,fontWeight:500}}>Protein hit <span className="mono" style={{fontWeight:600}}>{pr.hits}/{pr.total}</span> days this week{pr.rate>=3/7?" ✓":""}</p>
+
+        {/* ── HEATMAP ── */}
+        <div style={{marginBottom:10}}>
+          {/* Day headers */}
+          <div style={{display:"grid",gridTemplateColumns:"44px repeat(7,1fr)",marginBottom:4}}>
+            <div/>
+            {["M","T","W","T","F","S","S"].map((d,i)=>(
+              <div key={i} style={{textAlign:"center",fontSize:7,color:P.roseMid}}>{d}</div>
+            ))}
           </div>
-        ):null;})()}
-        <div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 12px 12px 0",padding:"12px 14px"}}>
-          <p style={{fontSize:11,color:P.roseDeep,fontStyle:"italic",lineHeight:1.6}}>{weekSess.length===3?"All 3 session types covered in 7 days. This is exactly the pace.":weekSess.length===2?"Two sessions done. One more for full coverage.":weekSess.length===1?"Good start. Two more sessions to go.":"Nothing logged yet in the last 7 days. No pressure — just show up once."}</p>
+          {/* Week rows — oldest first */}
+          {hmap.map((week,wi)=>(
+            <div key={wi} style={{display:"grid",gridTemplateColumns:"44px repeat(7,1fr)",alignItems:"center",marginBottom:4}}>
+              <p style={{fontSize:7,color:P.roseMid,lineHeight:1.3}}>{wkLabel[wi]}</p>
+              {week.map((cell,di)=>(
+                <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{
+                    width:"90%",aspectRatio:"1",borderRadius:5,
+                    background:cell?cellCol[cell.id]+"dd":P.roseLite+"88",
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                  }}>
+                    {cell&&<span style={{fontSize:7,fontWeight:700,color:cell.id==="glutes"?P.roseDeep:"white"}}>{cellLbl[cell.id]}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+          {/* Legend */}
+          <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
+            {[{col:P.rosePrimary+"dd",lbl:"Glutes"},{col:P.roseDark+"dd",lbl:"Core"},{col:P.accent+"dd",lbl:"Shape"},{col:P.roseLite+"88",lbl:"Rest"}].map(({col,lbl})=>(
+              <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
+                <div style={{width:10,height:10,borderRadius:3,background:col,flexShrink:0}}/>
+                <span style={{fontSize:8,color:P.roseMid}}>{lbl}</span>
+              </div>
+            ))}
+          </div>
         </div>
+
+        {/* ── COACH ── */}
+        <div style={{background:P.roseDeep,borderRadius:12,padding:"11px 14px",marginTop:4}}>
+          <p style={{fontSize:7,letterSpacing:"0.2em",textTransform:"uppercase",color:P.roseMid,marginBottom:4}}>Coach</p>
+          <p style={{fontSize:11,color:"white",lineHeight:1.65,fontStyle:"italic"}}>{coachWk}</p>
+        </div>
+
       </div></div>);
     }
 
