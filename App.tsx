@@ -1079,12 +1079,11 @@ export default function App(){
             :<em key={i} style={{color:P.roseHero,fontStyle:"italic"}}>{p.hi}</em>
           )}
         </h1>
-        {/* Stat chips — full width flex, match Today stat card scale */}
         <div style={{display:"flex",gap:7}}>
           {[
-            {Icon:IcWeight, val:wt?`${wt} kg`:"— kg", delta:wt&&first?`${(wt-wtStart)<0?"↓":"↑"} ${Math.abs(wt-wtStart).toFixed(1)}`:null, sub:"log stats"},
-            {Icon:IcWaist,  val:ws?`${ws} cm`:"— cm", delta:ws&&first?`${(ws-wsStart)<0?"↓":"↑"} ${Math.abs(ws-wsStart).toFixed(1)}`:null, sub:"log stats"},
-            {Icon:IcFire,   val:bf?`${bf}%`:"—%",     delta:null, sub:bf?"body fat":"log stats"},
+            {Icon:IcWeight,val:wt?`${wt} kg`:"— kg",delta:wt&&first?`${(wt-wtStart)<0?"↓":"↑"} ${Math.abs(wt-wtStart).toFixed(1)}`:null,sub:"log stats"},
+            {Icon:IcWaist, val:ws?`${ws} cm`:"— cm",delta:ws&&first?`${(ws-wsStart)<0?"↓":"↑"} ${Math.abs(ws-wsStart).toFixed(1)}`:null,sub:"log stats"},
+            {Icon:IcFire,  val:bf?`${bf}%`:"—%",    delta:null,sub:bf?"body fat":"log stats"},
           ].map(({Icon,val,delta,sub},i)=>(
             <div key={i} onClick={()=>setLogModal(true)} style={{flex:1,background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 10px",cursor:"pointer",display:"flex",alignItems:"center",gap:7}}>
               <Icon c={P.roseMid} s={14}/>
@@ -1097,28 +1096,28 @@ export default function App(){
         </div>
       </div>
 
-      {/* ── 4 PANELS — each flex:1, fills screen, 20px bottom breathing room ── */}
+      {/* ── PANELS — flex:1 each, fills screen, no scroll ── */}
       <div style={{flex:1,display:"flex",flexDirection:"column",padding:"0 14px 20px",gap:10,overflow:"hidden",minHeight:0}}>
 
         {/* PANEL 1 — Goal pace */}
         <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          {/* header row + divider */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goal pace</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for chart ↗</span>
           </div>
-          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:14}}>
-            {/* Weight bar */}
+          {/* bars centred in remaining space */}
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:14,paddingTop:12}}>
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-                <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Weight <span style={{color:P.roseMid,fontSize:10,fontWeight:400}}>{wtStart} → {goalW} kg</span></span>
+                <span style={{fontSize:11,color:P.roseMid,fontWeight:500}}>Weight <span style={{fontSize:10,fontWeight:400,opacity:0.75}}>{wtStart} → {goalW} kg</span></span>
                 <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:"—"}</span>
               </div>
               <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
             </div>
-            {/* Waist bar */}
             <div>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-                <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Waist <span style={{color:P.roseMid,fontSize:10,fontWeight:400}}>{wsStart} → {goalWs} cm</span></span>
+                <span style={{fontSize:11,color:P.roseMid,fontWeight:500}}>Waist <span style={{fontSize:10,fontWeight:400,opacity:0.75}}>{wsStart} → {goalWs} cm</span></span>
                 <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:"—"}</span>
               </div>
               <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
@@ -1128,7 +1127,7 @@ export default function App(){
 
         {/* PANEL 2 — This week */}
         <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week</p>
             <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(212,120,138,0.1)",borderRadius:14,padding:"3px 10px"}}>
               <div style={{width:5,height:5,borderRadius:"50%",background:P.roseDark}}/>
@@ -1137,13 +1136,13 @@ export default function App(){
               </span>
             </div>
           </div>
-          <div style={{display:"flex",gap:8,flex:1}}>
+          <div style={{display:"flex",gap:8,flex:1,paddingTop:10}}>
             {([["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][]).map(([id,label,Ic,col])=>{
               const done=weekTypes.has(id);
               return(<div key={id} style={{flex:1,borderRadius:10,border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"18":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
                 <Ic c={done?col:P.roseMid} s={22}/>
                 <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:done?600:400,color:done?col:P.roseMid}}>{label}</span>
-                <span style={{fontSize:13,color:done?col:P.roseLite,lineHeight:1}}>{done?"✓":"○"}</span>
+                <span style={{fontSize:14,color:done?col:`${col}40`,lineHeight:1}}>{done?"✓":"○"}</span>
               </div>);
             })}
           </div>
@@ -1151,7 +1150,7 @@ export default function App(){
 
         {/* PANEL 3 — Strength PRs */}
         <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:10,borderBottom:`1px solid ${P.roseLite}`,flexShrink:0}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength PRs</p>
             <span style={{fontSize:8,color:P.roseMid}}>tap for all ↗</span>
           </div>
@@ -1163,21 +1162,21 @@ export default function App(){
               const startKg=allEx?.kg||0;
               const pct=pr&&startKg?Math.min(100,((pr-startKg)/startKg)*100):0;
               const isPR=cur&&pr&&cur>=pr;
-              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 0",borderTop:i>0?`1px solid ${P.roseLite}`:"none"}}>
-                <span style={{flex:1,fontSize:13,color:P.roseMid,fontWeight:500,lineHeight:1}}>{ex.name}</span>
-                <div style={{width:56,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
+              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderTop:i>0?`1px solid ${P.roseLite}`:"none"}}>
+                <span style={{flex:1,fontSize:12,color:P.roseMid,fontWeight:500,lineHeight:1}}>{ex.name}</span>
+                <div style={{width:52,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
                   <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3}}/>
                 </div>
-                <span className="mono" style={{fontSize:13,color:P.roseDark,minWidth:56,textAlign:"right",flexShrink:0}}>
-                  {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?<span style={{color:P.rosePrimary,fontSize:11}}> ✦</span>:""}
+                <span className="mono" style={{fontSize:13,color:P.roseDark,minWidth:54,textAlign:"right",flexShrink:0}}>
+                  {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?<span style={{color:P.rosePrimary,fontSize:10}}> ✦</span>:""}
                 </span>
               </div>);
             })}
           </div>
         </div>
 
-        {/* PANEL 4 — Log + Milestone — 56px tall, 20px above nav */}
-        <div style={{display:"flex",gap:10,flexShrink:0,height:56}}>
+        {/* PANEL 4 — Log + Milestone */}
+        <div style={{display:"flex",gap:10,flexShrink:0,height:54}}>
           <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:12,letterSpacing:"0.06em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
             onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
