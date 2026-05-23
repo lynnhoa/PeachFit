@@ -1482,37 +1482,116 @@ export default function App(){
     }
 
     if(progressModal==="strength"){
-      const groups=[{name:"Glutes",color:P.rosePrimary,ids:["ht","rdl","kb","sm_w"]},{name:"Core & Waist",color:P.roseDark,ids:["cc","wc","hk","pp"]},{name:"Shape & Cardio",color:P.accent,ids:["sm","dk","iw"]}];
+      // Two goal-based groups — connects weights to what Lynn actually cares about
+      const goalGroups=[
+        {
+          name:"Glutes & shape",
+          col:P.rosePrimary,
+          goalLine:"Getting stronger here = more shape, more lift.",
+          ids:["ht","sm","rdl","kb","dk"],
+        },
+        {
+          name:"Waist & core",
+          col:P.roseDark,
+          goalLine:"Getting stronger here = smaller waist, flatter stomach.",
+          ids:["cc","wc","pp","iw"],
+        },
+      ];
+
+      // Per exercise: derive the real story from session history
+      const allExercises=SESSIONS.flatMap(s=>s.exercises);
+      const getExData=(id:string)=>{
+        const ex=allExercises.find(e=>e.id===id);
+        if(!ex||ex.bw)return null;
+        // All sessions where this exercise was actually logged with a weight
+        const logged=data.sessions
+          .filter(s=>s.weights&&s.weights[id]!=null)
+          .sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
+        if(!logged.length)return null;
+        const startKg=ex.kg; // hardcoded programme start
+        const firstLogged=logged[0].weights[id] as number;
+        const lastLogged=logged[logged.length-1].weights[id] as number;
+        const gain=Math.round((lastLogged-startKg)*10)/10;
+        const sessionCount=logged.length;
+        // Stuck = last 3 logged sessions all same weight
+        const last3=logged.slice(-3).map(s=>s.weights[id]);
+        const stuck=last3.length>=3&&last3.every(w=>w===last3[0]);
+        // Progress bar: gain relative to 10kg potential ceiling (arbitrary but visible)
+        const barPct=Math.min(100,Math.max(0,(gain/(ex.step*10||10))*100));
+        return{ex,startKg,firstLogged,lastLogged,gain,sessionCount,stuck,barPct};
+      };
+
+      const hasAnyData=goalGroups.some(g=>g.ids.some(id=>getExData(id)!==null));
+
       return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
         <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
           <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400}}>Strength progress</h3>
           <button onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
         </div>
-        {groups.map(g=>(<div key={g.name} style={{marginBottom:16}}>
-          <p style={{fontSize:9,letterSpacing:"0.2em",color:g.color,textTransform:"uppercase",fontWeight:500,marginBottom:8}}>{g.name}</p>
-          {g.ids.map(id=>{
-            const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===id);
-            if(!allEx||allEx.bw)return null;
-            const pr=getPR(allEx,data.sessions);
-            const cur=getWeight(allEx,data.sessions);
-            const hist=data.sessions.filter(s=>s.weights&&s.weights[id]!=null);
-            if(!hist.length)return null;
-            const isPR=typeof cur==="number"&&pr!=null&&cur>=pr;
-            return(<div key={id} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 0",borderBottom:`1px solid ${P.roseLite}`}}>
-              <div style={{flex:1}}>
-                <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{allEx.name}</p>
-                <p style={{fontSize:9,color:P.roseMid,marginTop:2}}>{allEx.muscle}</p>
+        <p style={{fontSize:11,color:P.roseMid,fontStyle:"italic",marginBottom:16,lineHeight:1.5}}>Every kg added here moves you closer to your goal.</p>
+
+        {!hasAnyData&&(
+          <div style={{textAlign:"center",padding:"28px 16px"}}>
+            <IcSparkle c={P.rosePrimary} s={28}/>
+            <p style={{fontSize:12,color:P.roseMid,lineHeight:1.65,marginTop:14}}>Complete your first session to see your strength progress here.</p>
+          </div>
+        )}
+
+        {goalGroups.map(g=>{
+          const rows=g.ids.map(id=>getExData(id)).filter(Boolean) as NonNullable<ReturnType<typeof getExData>>[];
+          if(!rows.length)return null;
+          return(
+            <div key={g.name} style={{marginBottom:20}}>
+              {/* Group header */}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <div style={{width:3,height:16,background:g.col,borderRadius:2,flexShrink:0}}/>
+                <p style={{fontSize:9,letterSpacing:"0.18em",color:g.col,textTransform:"uppercase",fontWeight:600}}>{g.name}</p>
               </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <p className="mono" style={{fontSize:14,color:g.color,fontWeight:600}}>{typeof cur==="number"?`${cur} kg`:cur}{isPR?" ✦":""}</p>
-                {pr&&<p style={{fontSize:9,color:P.roseMid,marginTop:1}}>PR {pr} kg</p>}
-              </div>
-            </div>);
-          })}
-        </div>))}
-        {!groups.flatMap(g=>g.ids).some(id=>data.sessions.some(s=>s.weights&&s.weights[id]!=null))&&
-          <p style={{fontSize:12,color:P.roseMid,fontStyle:"italic",lineHeight:1.6,textAlign:"center",padding:"20px 0"}}>Complete your first session to see strength data here.</p>}
+              <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:10,paddingLeft:11}}>{g.goalLine}</p>
+
+              {rows.map(({ex,startKg,lastLogged,gain,sessionCount,stuck,barPct})=>(
+                <div key={ex.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${P.roseLite}`}}>
+
+                  {/* Exercise name + session count */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                    <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{ex.name}</p>
+                    <p style={{fontSize:9,color:P.roseMid}}>{sessionCount} session{sessionCount!==1?"s":""}</p>
+                  </div>
+
+                  {/* Start → Now journey */}
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                    <div style={{textAlign:"center",flexShrink:0}}>
+                      <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:13,color:P.roseMid,lineHeight:1}}>{startKg} kg</p>
+                      <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>start</p>
+                    </div>
+                    <div style={{flex:1,position:"relative"}}>
+                      {/* track */}
+                      <div style={{height:5,background:P.roseLite,borderRadius:3}}>
+                        <div style={{height:"100%",width:`${barPct}%`,background:`linear-gradient(to right,${g.col}88,${g.col})`,borderRadius:3,transition:"width 0.5s ease"}}/>
+                      </div>
+                      {/* gain label on bar */}
+                      {gain>0&&<p style={{fontSize:8,color:g.col,fontWeight:600,textAlign:"center",marginTop:2}}>+{gain} kg</p>}
+                      {gain===0&&<p style={{fontSize:8,color:P.roseMid,textAlign:"center",marginTop:2}}>starting out</p>}
+                    </div>
+                    <div style={{textAlign:"center",flexShrink:0}}>
+                      <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:16,color:g.col,fontWeight:600,lineHeight:1}}>{lastLogged} kg</p>
+                      <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>now</p>
+                    </div>
+                  </div>
+
+                  {/* Stuck flag */}
+                  {stuck&&(
+                    <div style={{background:P.roseLite,borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:6}}>
+                      <IcArrowUp c={P.roseDark} s={11}/>
+                      <p style={{fontSize:10,color:P.roseDeep,lineHeight:1.4}}>Same weight for 3 sessions — you may be ready to go heavier.</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })}
       </div></div>);
     }
 
