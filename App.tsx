@@ -1073,7 +1073,7 @@ export default function App(){
       <div style={{padding:"100px 20px 40px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-44,right:-44,width:160,height:160,background:"radial-gradient(circle,rgba(242,160,176,0.2),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
-        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15,marginBottom:14}}>
+        <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.3,marginBottom:14}}>
           {coachParts.map((p,i)=>typeof p==="string"
             ?<span key={i}>{p}</span>
             :<em key={i} style={{color:P.roseHero,fontStyle:"italic"}}>{p.hi}</em>
@@ -1097,62 +1097,65 @@ export default function App(){
         </div>
       </div>
 
-      {/* ── 4 PANELS — each flex:1 so they fill screen evenly, no dead space ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"0 14px 12px",gap:10,overflow:"hidden",minHeight:0}}>
+      {/* ── 4 PANELS — each flex:1, fills screen, 20px bottom breathing room ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"0 14px 20px",gap:10,overflow:"hidden",minHeight:0}}>
 
         {/* PANEL 1 — Goal pace */}
-        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",justifyContent:"space-between",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goal pace</p>
-            <span style={{fontSize:9,color:P.roseMid}}>tap for chart ↗</span>
+            <span style={{fontSize:8,color:P.roseMid}}>tap for chart ↗</span>
           </div>
-          {/* Weight bar */}
-          <div style={{marginBottom:10}}>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Weight <span style={{color:P.roseMid,fontSize:10}}>{wtStart} → {goalW} kg</span></span>
-              <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:"—"}</span>
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",gap:14}}>
+            {/* Weight bar */}
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Weight <span style={{color:P.roseMid,fontSize:10,fontWeight:400}}>{wtStart} → {goalW} kg</span></span>
+                <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:"—"}</span>
+              </div>
+              <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
             </div>
-            <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
-          </div>
-          {/* Waist bar */}
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-              <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Waist <span style={{color:P.roseMid,fontSize:10}}>{wsStart} → {goalWs} cm</span></span>
-              <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:"—"}</span>
+            {/* Waist bar */}
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                <span style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Waist <span style={{color:P.roseMid,fontSize:10,fontWeight:400}}>{wsStart} → {goalWs} cm</span></span>
+                <span style={{fontSize:11,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:"—"}</span>
+              </div>
+              <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
             </div>
-            <div style={{height:7,background:P.roseLite,borderRadius:4}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:4,transition:"width 0.5s ease"}}/></div>
           </div>
         </div>
 
         {/* PANEL 2 — This week */}
         <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week</p>
             <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"rgba(212,120,138,0.1)",borderRadius:14,padding:"3px 10px"}}>
               <div style={{width:5,height:5,borderRadius:"50%",background:P.roseDark}}/>
-              <span style={{fontSize:9,color:P.roseDark,fontWeight:500}}>
+              <span style={{fontSize:8,color:P.roseDark,fontWeight:500}}>
                 {weekSess.length} of 3{weekSess.length<3?" · "+[["glutes","Glutes"],["core","Core"],["shape","Shape"]].filter(([id])=>!weekTypes.has(id)).map(([,n])=>n).join(", "):""}
               </span>
             </div>
           </div>
-          <div style={{display:"flex",gap:7,flex:1}}>
+          <div style={{display:"flex",gap:8,flex:1}}>
             {([["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][]).map(([id,label,Ic,col])=>{
               const done=weekTypes.has(id);
-              return(<div key={id} style={{flex:1,borderRadius:10,textAlign:"center",border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"22":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5}}>
-                <Ic c={done?col:P.roseMid} s={20}/>
-                <div style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:done?600:400,color:done?col:P.roseMid}}>{label} {done?"✓":"○"}</div>
+              return(<div key={id} style={{flex:1,borderRadius:10,border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"18":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:6}}>
+                <Ic c={done?col:P.roseMid} s={22}/>
+                <span style={{fontSize:9,letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:done?600:400,color:done?col:P.roseMid}}>{label}</span>
+                <span style={{fontSize:13,color:done?col:P.roseLite,lineHeight:1}}>{done?"✓":"○"}</span>
               </div>);
             })}
           </div>
         </div>
 
-        {/* PANEL 3 — Strength */}
+        {/* PANEL 3 — Strength PRs */}
         <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"14px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",minHeight:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
             <p style={{fontSize:8,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength PRs</p>
-            <span style={{fontSize:9,color:P.roseMid}}>tap for all ↗</span>
+            <span style={{fontSize:8,color:P.roseMid}}>tap for all ↗</span>
           </div>
-          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-around"}}>
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly"}}>
             {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex,i,arr)=>{
               const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
               const pr=allEx?getPR(allEx,data.sessions):null;
@@ -1160,33 +1163,37 @@ export default function App(){
               const startKg=allEx?.kg||0;
               const pct=pr&&startKg?Math.min(100,((pr-startKg)/startKg)*100):0;
               const isPR=cur&&pr&&cur>=pr;
-              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:10,padding:"6px 0",borderBottom:i<arr.length-1?`1px solid ${P.roseLite}`:"none"}}>
-                <div style={{flex:1,fontSize:12,color:P.roseDeep,fontWeight:500}}>{ex.name}</div>
-                <div style={{width:64,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}><div style={{height:"100%",width:`${pct}%`,background:P.roseDark,borderRadius:3}}/></div>
-                <div className="mono" style={{fontSize:12,color:P.roseDark,minWidth:58,textAlign:"right",flexShrink:0}}>{cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?" ✦":""}</div>
+              return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:10,borderBottom:i<arr.length-1?`1px solid ${P.roseLite}`:"none",paddingBottom:i<arr.length-1?8:0,marginBottom:i<arr.length-1?8:0}}>
+                <span style={{flex:1,fontSize:12,color:P.roseDeep,fontWeight:500,lineHeight:1}}>{ex.name}</span>
+                <div style={{width:60,height:5,background:P.roseLite,borderRadius:3,flexShrink:0}}>
+                  <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3}}/>
+                </div>
+                <span className="mono" style={{fontSize:12,color:P.roseDeep,minWidth:60,textAlign:"right",flexShrink:0}}>
+                  {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}{isPR?<em style={{color:P.roseDark,fontStyle:"normal"}}> ✦</em>:""}
+                </span>
               </div>);
             })}
           </div>
         </div>
 
-        {/* PANEL 4 — Log + Milestone */}
-        <div style={{display:"flex",gap:10,flexShrink:0,height:58}}>
+        {/* PANEL 4 — Log + Milestone — 56px tall, 20px above nav */}
+        <div style={{display:"flex",gap:10,flexShrink:0,height:56}}>
           <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:12,letterSpacing:"0.06em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
             onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
           </button>
           {milestones.length>0?(
             <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:`linear-gradient(135deg,${P.roseLite},${P.white})`,border:`1.5px solid ${P.rosePrimary}`,borderRadius:14,padding:"10px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+              <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
                 <IcStar c={P.roseDark} s={9}/>
                 <span style={{fontSize:8,letterSpacing:"0.12em",textTransform:"uppercase",color:P.roseDark,fontWeight:500}}>Milestone</span>
               </div>
-              <p style={{fontSize:10,color:P.roseDeep,fontWeight:600,lineHeight:1.3}}>{milestones[0].title}</p>
+              <p style={{fontSize:10,color:P.roseDeep,fontWeight:600,lineHeight:1.25}}>{milestones[0].title}</p>
             </div>
           ):(
-            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:P.roseLite,border:`1px dashed ${P.rosePrimary}`,borderRadius:14,padding:"10px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center"}}>
-              <IcSparkle c={P.rosePrimary} s={18}/>
-              <p style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"center",lineHeight:1.3}}>Milestones unlock as you progress</p>
+            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:P.roseLite,border:`1px dashed ${P.rosePrimary}`,borderRadius:14,padding:"10px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center",alignItems:"center",gap:3}}>
+              <IcSparkle c={P.rosePrimary} s={16}/>
+              <p style={{fontSize:8,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>Milestones unlock as you progress</p>
             </div>
           )}
         </div>
