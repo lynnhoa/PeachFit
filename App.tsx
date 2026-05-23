@@ -753,7 +753,7 @@ export default function App(){
         <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginTop:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
       </div>
       {/* Main content — flex fills remaining space, no justifyContent:center so layout is top-anchored */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"12px 24px",overflow:"hidden"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"22px 24px",overflow:"hidden"}}>
         {/* Exercise identity */}
         <div style={{textAlign:"center",marginBottom:16}}>
           {/* Badge row — always 24px tall so layout never shifts when badges appear/disappear */}
