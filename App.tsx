@@ -404,16 +404,24 @@ export default function App(){
     });
   };
 
+  const saveSession=()=>{
+    if(!active||!sess)return;
+    const mins=Math.max(1,Math.round(elapsed/60));
+    const cal=kcal(active.met,mins);
+    const numericWeights={};
+    active.exercises.forEach(ex=>{
+      if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
+    });
+    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:elapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
+    persist({...data,sessions:[...data.sessions,rec]});
+  };
+
   const finishSession=()=>{
     const mins=Math.max(1,Math.round(elapsed/60));
     const cal=kcal(active.met,mins);
-    // Save the weights Lynn actually used (from sess.weights, including any manual adjustments)
     const numericWeights={};
     active.exercises.forEach(ex=>{
-      if(!ex.bw){
-        const used=sess.weights?.[ex.id];
-        if(used!=null)numericWeights[ex.id]=used;
-      }
+      if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
     });
     const prs=active.exercises.filter(ex=>!ex.bw&&numericWeights[ex.id]).filter(ex=>{const pr=getPR(ex,data.sessions);return!pr||numericWeights[ex.id]>pr;}).map(ex=>ex.name);
     const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:elapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
@@ -693,11 +701,11 @@ export default function App(){
       </div>
     );
 
-    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}setActive(null);setSess(null);setElapsed(0);setRest(null);};
+    const clearSession=()=>{stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);};
     const stopAndBack=()=>{
       if(doneSets>0){
         const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
-        if(choice){finishSession();setSummary(null);clearSession();setTab("today");}
+        if(choice){saveSession();clearSession();setTab("today");}
         else{clearSession();setTab("today");}
       } else {clearSession();setTab("today");}
     };
@@ -1580,9 +1588,9 @@ export default function App(){
               if(doneSets>0){
                 const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
                 if(choice){
-                  finishSession();setSummary(null);
+                  saveSession();
                   stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}
-                  setActive(null);setSess(null);setElapsed(0);setRest(null);
+                  setActive(null);setSess(null);setElapsed(0);setRest(null);setSummary(null);
                 } else {
                   stopTimer();if(restRafRef.current){cancelAnimationFrame(restRafRef.current);restRafRef.current=null;}
                   setActive(null);setSess(null);setElapsed(0);setRest(null);
