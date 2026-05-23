@@ -567,7 +567,7 @@ export default function App(){
         </>)}
         {/* Protein nudge */}
         <div style={{marginTop:10,marginBottom:2}}>
-          {!todayProtein?(()=>{
+          {!todayProtein&&(()=>{
             const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:(data.profile.startWeight??50);
             const proteinTarget=Math.round(currWt*2);
             return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:13,padding:"11px 14px",boxShadow:"0 1px 8px rgba(212,120,138,0.07)"}}>
@@ -576,13 +576,13 @@ export default function App(){
                 <p style={{fontSize:11,color:P.roseDeep,fontWeight:500}}>Protein today? <span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g target)</span></p>
               </div>
               <div style={{display:"flex",gap:6}}>
-                {[["Yes, hit it",true,"#e8f5e9","#2e7d32","#a5d6a7"],["Not today",false,P.roseLite,P.roseDark,P.rosePrimary],["Skip",null,"transparent",P.roseMid,"rgba(196,144,154,0.3)"]].map(([label,val,bg,col,border])=>(
+                {([["Yes, hit it",true,"#e8f5e9","#2e7d32","#a5d6a7"],["Not today",false,P.roseLite,P.roseDark,P.rosePrimary],["Skip",null,"transparent",P.roseMid,"rgba(196,144,154,0.3)"]] as [string,boolean|null,string,string,string][]).map(([label,val,bg,col,border])=>(
                   <button key={label} onClick={()=>logProtein(val)} style={{flex:1,background:bg,border:`1.5px solid ${border}`,borderRadius:20,padding:"7px 4px",fontSize:10,color:col,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,transition:"all 0.14s"}}>{label}</button>
                 ))}
               </div>
             </div>);
-          })()
-          ):(
+          })()}
+          {todayProtein&&(
             <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:13,padding:"9px 14px",display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:20,height:20,borderRadius:"50%",background:todayProtein.hit===true?"#2e7d32":P.roseMid,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c="white" s={10}/></div>
               <p style={{fontSize:11,color:todayProtein.hit===true?"#2e7d32":P.roseMid,fontStyle:"italic"}}>{todayProtein.hit===true?"Protein logged — great work today.":todayProtein.skipped?"Skipped for today — check back tomorrow.":"Logged — not today. Tomorrow is another chance."}</p>
