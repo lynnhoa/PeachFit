@@ -107,7 +107,7 @@ const SESSIONS=[
 
 // ── STORAGE ──────────────────────────────────────────────────────────────────
 const KEY="lynn_gym_v3";
-const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,goalBodyFat:20,startWeight:null,startWaist:null};
+const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,goalBodyFat:20};
 const ld=()=>{
   try{
     const raw=JSON.parse(localStorage.getItem(KEY))||{};
@@ -379,12 +379,13 @@ export default function App(){
 
   const logBodyEntry=entry=>{
     const today=new Date().toISOString().slice(0,10);
-    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),{date:new Date().toISOString(),...entry}];
-    let profile={...data.profile};
-    // Lock startWeight/startWaist — capture whenever still null, from any early entry
-    if(entry.weight&&!profile.startWeight)profile.startWeight=entry.weight;
-    if(entry.waist&&!profile.startWaist)profile.startWaist=entry.waist;
-    persist({...data,bodyLog:newLog,profile});
+    const existing=data.bodyLog.find(e=>e.date.slice(0,10)===today);
+    // Merge into existing same-day entry — never wipe fields logged earlier today
+    const merged=existing
+      ?{...existing,...entry,date:new Date().toISOString()}
+      :{date:new Date().toISOString(),...entry};
+    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),merged];
+    persist({...data,bodyLog:newLog});
   };
 
   const startSession=pl=>{
@@ -514,8 +515,8 @@ export default function App(){
           {(()=>{
             const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
             const first=data.bodyLog.length?data.bodyLog[0]:null;
-            const wt=last?.weight??(data.profile.startWeight??50); const wtStart=data.profile.startWeight??(first?.weight??50);
-            const ws=last?.waist??(data.profile.startWaist??69); const wsStart=data.profile.startWaist??(first?.waist??69);
+            const wt=last?.weight??(first?.weight??50); const wtStart=first?.weight??50;
+            const ws=last?.waist??(first?.waist??69); const wsStart=first?.waist??69;
             const wtDelta=last?(wt-wtStart).toFixed(1):null;
             const wsDelta=last?(ws-wsStart).toFixed(1):null;
             return[[IcWeight,`${wt} kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws} cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
@@ -572,7 +573,7 @@ export default function App(){
         {/* Protein */}
         <div style={{flexShrink:0}}>
           {!todayProtein&&(()=>{
-            const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:(data.profile.startWeight??50);
+            const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:50;
             const proteinTarget=Math.round(currWt*2);
             return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
               <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
@@ -1036,9 +1037,9 @@ export default function App(){
     const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
     const first=data.bodyLog.length?data.bodyLog[0]:null;
     const wt=last?.weight??null;
-    const wtStart=data.profile.startWeight??(first?.weight??50);
+    const wtStart=first?.weight??50;
     const ws=last?.waist??null;
-    const wsStart=data.profile.startWaist??(first?.waist??69);
+    const wsStart=first?.waist??69;
     const bf=last?.bodyFat??null;
     const goalW=data.profile.goalWeight??45;
     const goalWs=data.profile.goalWaist??63;
@@ -1317,13 +1318,17 @@ export default function App(){
         </svg>
       )}
       {vals.length>0&&<div style={{display:"flex",gap:8,marginBottom:14}}>
-        {[["Start",vals[0]],["Now",vals[vals.length-1]],["Change",(vals[vals.length-1]-vals[0])]].map(([lbl,v],i)=>(
+        {(()=>{
+          const first=data.bodyLog[0];
+          const startVal=metric==="weight"?(first?.weight??vals[0]):metric==="waist"?(first?.waist??vals[0]):vals[0];
+          const nowVal=vals[vals.length-1];
+          return[["Start",startVal],["Now",nowVal],["Change",(nowVal-startVal)]].map(([lbl,v],i)=>(
           <div key={lbl} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:14,padding:"12px 10px",textAlign:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
             <p style={{fontSize:8,color:P.roseMid,textTransform:"uppercase",letterSpacing:"0.12em",fontWeight:500,marginBottom:4}}>{lbl}</p>
             <p className="mono" style={{fontSize:18,color:i===2&&v<0?P.roseDark:P.roseDeep,lineHeight:1}}>{i===2?(v>0?"+":"")+v.toFixed(1):v}</p>
             <p style={{fontSize:9,color:P.roseMid,marginTop:2}}>{unit}</p>
-          </div>
-        ))}
+          </div>));
+        })()}
       </div>}
       {coreLine&&<div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 12px 12px 0",padding:"10px 14px",marginBottom:14}}><p style={{fontSize:11,color:P.roseDeep,fontStyle:"italic",lineHeight:1.6}}>{coreLine}</p></div>}
       <button className="btnP" onClick={()=>{close();setLogModal("Weight");}}>+ Log today's stats</button>
@@ -1620,13 +1625,24 @@ export default function App(){
   const ProfileModal=()=>{
     const profile=data.profile||DEFAULT_PROFILE;
     const[nm,setNm]=useState(profile.name||"");
-    const[sw,setSw]=useState((profile.startWeight??data.bodyLog[0]?.weight??"").toString());
-    const[ss,setSs]=useState((profile.startWaist??data.bodyLog[0]?.waist??"").toString());
+    const[sw,setSw]=useState((data.bodyLog[0]?.weight??"").toString());
+    const[ss,setSs]=useState((data.bodyLog[0]?.waist??"").toString());
     const[af,setAf]=useState(null);
     const canSave=!!nm.trim();
     const save=()=>{
       if(!canSave)return;
-      persist({...data,profile:{...profile,name:nm.trim(),...(sw&&{startWeight:parseFloat(sw)}),...(ss&&{startWaist:parseFloat(ss)})}});
+      // Update name in profile; update start values directly in bodyLog[0]
+      let newBodyLog=[...data.bodyLog];
+      if(newBodyLog.length>0){
+        const first={...newBodyLog[0]};
+        if(sw)first.weight=parseFloat(sw);
+        if(ss)first.waist=parseFloat(ss);
+        newBodyLog=[first,...newBodyLog.slice(1)];
+      } else if(sw||ss){
+        // No entries yet — create a synthetic first entry as baseline
+        newBodyLog=[{date:new Date().toISOString(),...(sw&&{weight:parseFloat(sw)}),...(ss&&{waist:parseFloat(ss)})}];
+      }
+      persist({...data,profile:{...profile,name:nm.trim()},bodyLog:newBodyLog});
       setMeModal(null);
     };
     return(<div className="mo" onClick={()=>setMeModal(null)}><div className="ms sl" onClick={e=>e.stopPropagation()}>
