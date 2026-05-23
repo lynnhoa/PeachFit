@@ -1113,13 +1113,12 @@ export default function App(){
               </span>
             </div>
           </div>
-          <div style={{display:"flex",gap:8,height:42}}>
+          <div style={{display:"flex",gap:8,height:52}}>
             {([["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][]).map(([id,label,Ic,col])=>{
               const done=weekTypes.has(id);
-              return(<div key={id} style={{flex:1,borderRadius:9,border:`1.5px solid ${done?col:P.roseLite}`,background:done?col+"18":"transparent",transition:"all 0.2s",display:"flex",flexDirection:"row",alignItems:"center",justifyContent:"center",gap:5}}>
-                <Ic c={done?col:P.roseMid} s={15}/>
-                <span style={{fontSize:13,letterSpacing:"0.05em",textTransform:"uppercase",fontWeight:done?600:500,color:done?P.roseDeep:P.roseMid}}>{label}</span>
-                <span style={{fontSize:11,color:done?col:`${col}40`,lineHeight:1}}>{done?"✓":"○"}</span>
+              return(<div key={id} style={{flex:1,borderRadius:10,padding:"7px 4px",textAlign:"center",border:`1.5px solid ${done?col:col+"22"}`,background:done?col+"18":col+"0d",transition:"all 0.2s",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
+                <Ic c={done?col:col+"88"} s={16}/>
+                <p style={{fontSize:9,color:done?col:P.roseMid,fontWeight:done?600:500,letterSpacing:"0.04em"}}>{label.toUpperCase()}{done?" ✓":""}</p>
               </div>);
             })}
           </div>
