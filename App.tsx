@@ -236,7 +236,7 @@ const CSS=`
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:${P.roseDeep};}
 ::-webkit-scrollbar{width:0;}
-.app{font-family:'DM Sans',sans-serif;background:${P.bg};height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;position:relative;}
+.app{font-family:'DM Sans',sans-serif;background:${P.bg};height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;position:relative;padding-bottom:env(safe-area-inset-bottom,0px);}
 .screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .screen-full{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .serif{font-family:'Playfair Display',serif;}
@@ -249,7 +249,7 @@ html,body{height:100%;overflow:hidden;background:${P.roseDeep};}
 .btnG{background:none;border:1.5px solid ${P.rosePrimary};color:${P.roseDark};border-radius:40px;padding:9px 18px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-appearance:none;}
 .nav{flex-shrink:0;background:white;border-top:1px solid ${P.roseLite};display:flex;flex-direction:column;z-index:100;}
 .nav-icons{display:flex;align-items:center;justify-content:space-around;height:56px;width:100%;padding:0 4px;}
-.nav-safe{height:env(safe-area-inset-bottom,0px);}
+.nav-safe{display:none;}
 .nb{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;cursor:pointer;padding:0 10px;font-family:'DM Sans',sans-serif;-webkit-appearance:none;flex:1;}
 .mo{position:fixed;inset:0;background:rgba(61,32,40,0.65);z-index:200;display:flex;align-items:flex-end;backdrop-filter:blur(6px);}
 .ms{background:${P.white};border-radius:24px 24px 0 0;padding:20px 20px calc(24px + env(safe-area-inset-bottom,0px));width:100%;max-width:430px;margin:0 auto;max-height:85dvh;overflow-y:auto;}
@@ -469,7 +469,7 @@ export default function App(){
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
         {daysSince!==null&&<p style={{fontSize:10,color:P.roseMid,marginTop:5,fontStyle:"italic"}}>{daysSince===0?"You trained today":"Last session: "+daysSince+" day"+(daysSince!==1?"s":"")+" ago"}</p>}
       </div>
-      <div style={{padding:"12px 14px 80px"}}>
+      <div style={{padding:"12px 14px 16px"}}>
         {/* Banner */}
         <div style={{background:P.roseLite,borderLeft:`2.5px solid ${P.roseDark}`,borderRadius:"0 10px 10px 0",padding:"9px 13px",marginBottom:12}}>
           <p style={{fontSize:10,fontStyle:"italic",color:P.roseDeep,lineHeight:1.55}}>{getBanner(data.sessions,data.nutritionLog)}</p>
@@ -636,7 +636,7 @@ export default function App(){
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:3}}>Train</p>
           <h1 className="serif" style={{fontSize:26,color:"white",fontWeight:400,lineHeight:1.15}}>Choose your <em style={{color:P.roseHero}}>session</em></h1>
         </div>
-        <div style={{padding:"12px 14px 80px"}}>
+        <div style={{padding:"12px 14px 16px"}}>
           {SESSIONS.map(pl=>{
             const SIcon=SessIcon[pl.id];
             const isSuggested=pl.id===suggested.id;
@@ -743,8 +743,7 @@ export default function App(){
           </div>
           <button onClick={advanceAfterRest} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
         </div>
-        <div style={{padding:"0 24px calc(16px + env(safe-area-inset-bottom,0px))"}}>
-          <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginBottom:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
+        <div style={{padding:"0 24px 16px"}}>          <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginBottom:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
           <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",textAlign:"center"}}>{doneSets} of {totSets} sets complete</p>
         </div>
       </div>);
@@ -838,7 +837,7 @@ export default function App(){
         </div>
       </div>
       {/* Bottom time/kcal — only after 1min */}
-      {elapsed>=60&&(<div style={{padding:"0 24px calc(12px + env(safe-area-inset-bottom,0px))",display:"flex",justifyContent:"center",gap:24,flexShrink:0}}>
+      {elapsed>=60&&(<div style={{padding:"0 24px 12px",display:"flex",justifyContent:"center",gap:24,flexShrink:0}}>
         <div style={{textAlign:"center",display:"flex",alignItems:"center",gap:5}}>
           <IcClock c="rgba(255,255,255,0.25)" s={12}/>
           <span className="mono" style={{fontSize:13,color:"rgba(255,255,255,0.3)",fontVariantNumeric:"tabular-nums"}}>{fmt(elapsed)}</span>
@@ -862,7 +861,7 @@ export default function App(){
       <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"12px 0 6px"}}>Session Complete</p>
       <h2 className="serif" style={{fontSize:28,color:"white",fontWeight:400}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
     </div>
-    <div style={{padding:"16px 14px 80px"}}>
+    <div style={{padding:"16px 14px 16px"}}>
       <div style={{display:"flex",gap:7,marginBottom:12}}>
         {[[IcClock,fmt(summary.duration),"Time"],[IcFire,`~${summary.calories}`,"kcal"],[IcTrain,`${doneSets}/${totSets}`,"Sets"]].map(([Ic,v,l])=>(
           <div key={l} className="card" style={{flex:1,textAlign:"center",padding:"12px 4px"}}>
