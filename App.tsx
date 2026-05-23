@@ -1056,7 +1056,7 @@ export default function App(){
       </div>
 
       {/* ── PANELS ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"20px 14px 20px",gap:10,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"20px 14px 20px",gap:10,overflowY:"auto",overflowX:"hidden",minHeight:0,background:P.roseLite}}>
 
         {/* PANEL 1 — Goal pace: flexShrink:0, content drives height */}
         <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"14px 20px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
@@ -1126,21 +1126,19 @@ export default function App(){
         </div>
 
         {/* PANEL 4 — Log + Milestone */}
-        <div style={{display:"flex",gap:8,flexShrink:0,height:44}}>
-          <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",fontSize:13,letterSpacing:"0.05em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
-            onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")}>
+        <div style={{display:"flex",gap:8,flexShrink:0,minHeight:52,alignItems:"stretch"}}>
+          <button onClick={()=>setLogModal(true)} style={{flex:"1.4 1 0",minWidth:0,flexShrink:0,fontSize:13,letterSpacing:"0.05em",background:P.roseDark,color:"white",border:"none",borderRadius:40,fontWeight:500,fontFamily:"'DM Sans'",cursor:"pointer",transition:"opacity 0.15s"}}
+            onTouchStart={e=>(e.currentTarget.style.opacity="0.82")} onTouchEnd={e=>(e.currentTarget.style.opacity="1")} onTouchCancel={e=>(e.currentTarget.style.opacity="1")}>
             + Log today's stats
           </button>
-          {milestones.length>0?(
-            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:`linear-gradient(135deg,${P.roseLite},${P.white})`,border:`1.5px solid ${P.rosePrimary}`,borderRadius:12,padding:"7px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-              <span style={{fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:P.roseMid,fontWeight:500}}>Milestone</span>
-              <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,lineHeight:1.25,marginTop:2}}>{milestones[0].title}</p>
-            </div>
-          ):(
-            <div onClick={()=>setProgressModal("milestones")} style={{flex:1,background:P.roseLite,border:`1px dashed ${P.rosePrimary}`,borderRadius:12,padding:"7px 12px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div onClick={()=>setProgressModal("milestones")} style={{flex:1,minWidth:0,background:milestones.length>0?`linear-gradient(135deg,${P.roseLite},${P.white})`:P.roseLite,border:milestones.length>0?`1.5px solid ${P.rosePrimary}`:`1px dashed ${P.rosePrimary}`,borderRadius:12,padding:"7px 12px",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+            {milestones.length>0?(
+              <><span style={{fontSize:10,letterSpacing:"0.1em",textTransform:"uppercase",color:P.roseMid,fontWeight:500}}>Milestone</span>
+              <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,lineHeight:1.25,marginTop:2}}>{milestones[0].title}</p></>
+            ):(
               <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Milestones unlock with progress</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
       </div>
