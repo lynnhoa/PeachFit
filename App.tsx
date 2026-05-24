@@ -42,7 +42,7 @@ const SessIcon={glutes:IcGlutes,core:IcCore,shape:IcShape};
 const SESSIONS=[
   {id:"glutes",name:"Glutes Heavy",tag:"GLUTES",color:P.rosePrimary,duration:45,met:4.5,
    exercises:[
-    {id:"ht",name:"Barbell Hip Thrust",muscle:"Glutes — Primary",sets:4,reps:"10–12",kg:20,step:2.5,freq:2,bw:false,rest:90,anim:"ht",
+    {id:"ht",name:"Barbell Hip Thrust",muscle:"Glutes — Primary",sets:4,reps:"10–12",kg:40,step:2.5,freq:2,bw:false,rest:90,anim:"ht",
      tip:"Lean upper back into bench — keeps tension on glutes, not lower back.",cue:"Drive heels into floor. Thrust hips to ceiling. Squeeze 1 full second at top.",start:"Upper back on bench, barbell above hip crease, feet flat shoulder-width.",dont:"Don't hyperextend lower back at the top. Stop just before full extension.",
      swaps:[{name:"Smith Machine Hip Thrust",note:"Bar is guided — go heavier safely"},{name:"Dumbbell Hip Thrust",note:"Lighter load, same glute pattern"},{name:"Glute Bridge (BW + Band)",note:"No equipment — band above knees"}]},
     {id:"rdl",name:"Romanian Deadlift",muscle:"Glutes + Hamstrings",sets:3,reps:"10",kg:15,step:2.5,freq:2,bw:false,rest:90,anim:"rdl",
@@ -99,7 +99,7 @@ const SESSIONS=[
     {id:"bc",name:"Bicycle Crunch",muscle:"Obliques + Rectus",sets:3,reps:"20 total",kg:0,step:0,freq:0,bw:true,rest:45,anim:"bc",
      tip:"Go slow. The slower you go, the more the obliques work. Speed ruins this.",cue:"Elbow to opposite knee with full torso rotation. Extend the other leg long.",start:"Lie on back, hands light behind head, knees at 90°.",dont:"Don't pull your neck. Rotation comes from the torso, not the elbows.",
      swaps:[{name:"Cross-Body Mountain Climber",note:"Standing-equivalent rotation"},{name:"Oblique V-Up",note:"Side lying, targets same muscles"},{name:"Standing Oblique Crunch",note:"No floor needed — standing"}]},
-    {id:"iw",name:"Incline Walk",muscle:"Fat Burn — No Leg Bulk",sets:1,reps:"10 min",kg:5.5,step:0.5,freq:4,bw:false,rest:0,anim:"cd",
+    {id:"iw",name:"Incline Walk",muscle:"Fat Burn — No Leg Bulk",sets:1,reps:"10 min",kg:5.5,step:0.5,freq:4,bw:false,rest:0,anim:"cd",unit:"km/h",
      tip:"6% incline, 5.5 kmh. Burns fat without building leg muscle. Perfect for your goal.",cue:"Steady walk. Natural arm swing. Don't hold the rails.",start:"Treadmill: 6% incline, 5.5 kmh speed.",dont:"No running. No HIIT. Incline walk only — running grows the legs.",
      swaps:[{name:"Stairmaster (15 min)",note:"Glute-focused cardio alternative"},{name:"Elliptical (low resistance)",note:"Low impact, fat burn zone"},{name:"Skip cardio today",note:"Core was intense — rest is earned"}]},
   ]},
@@ -716,8 +716,8 @@ export default function App(){
           </div>
           <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
             <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
-            {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions)} kg`}</p></>)
-            :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":`${cw} kg`}</p></>)}
+            {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions)} ${nextEx.unit||"kg"}`}</p></>)
+            :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":`${cw} ${ex.unit||"kg"}`}</p></>)}
           </div>
           <button onClick={advanceAfterRest} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
         </div>
@@ -736,7 +736,17 @@ export default function App(){
         <h2 className="serif" style={{fontSize:30,color:"white",fontWeight:400,marginBottom:8}}>Incredible,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
         <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>Every set complete.</p>
         <button className="btnP" style={{marginBottom:12}} onClick={finishSession}>FINISH SESSION</button>
-        <button onClick={()=>{finishingRef.current=false;setSess(prev=>({...prev,phase:"active",currentExIdx:0,currentSet:0,comp:{},csets:{}}));}} style={{background:"none",border:"none",color:P.roseMid,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'"}}>← Back to exercises</button>
+        <button onClick={()=>{
+          finishingRef.current=false;
+          setSess(prev=>{
+            // Find first exercise that hasn't had all sets completed
+            const firstIncomplete=active.exercises.findIndex(e=>
+              Object.keys(prev.comp).filter(k=>k.startsWith(`${e.id}-`)&&prev.comp[k]).length < e.sets
+            );
+            const goTo=firstIncomplete>=0?firstIncomplete:0;
+            return{...prev,phase:"active",currentExIdx:goTo,currentSet:0};
+          });
+        }} style={{background:"none",border:`1px solid rgba(242,160,176,0.3)`,color:P.roseHero,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",padding:"8px 24px",borderRadius:40,letterSpacing:"0.06em"}}>← Back to exercises</button>
       </div>);
     }
 
@@ -777,7 +787,7 @@ export default function App(){
                 style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>−</button>
               <div style={{display:"inline-flex",alignItems:"baseline",gap:5,padding:"10px 4px"}}>
                 <span className="mono" style={{fontSize:38,color:isUp?P.roseHero:"white",lineHeight:1,fontVariantNumeric:"tabular-nums"}}>{cw}</span>
-                <span style={{fontSize:15,color:P.roseMid}}>kg</span>
+                <span style={{fontSize:15,color:P.roseMid}}>{ex.unit||"kg"}</span>
                 {isUp&&<span style={{marginLeft:2}}><IcArrowUp c={P.roseHero} s={14}/></span>}
               </div>
               <button
@@ -1106,13 +1116,13 @@ export default function App(){
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:5}}>
             <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Weight <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wtStart} → {goalW} kg</span></span>
-            <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:"—"}</span>
+            <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:<span style={{fontSize:9,color:P.roseMid,fontStyle:"italic"}}>log 2+ days</span>}</span>
           </div>
           <div style={{height:5,background:P.roseLite,borderRadius:3,marginBottom:10}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
           {wt!=null&&wt<=goalW&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginBottom:6,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:5}}>
             <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Waist <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wsStart} → {goalWs} cm</span></span>
-            <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:"—"}</span>
+            <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:<span style={{fontSize:9,color:P.roseMid,fontStyle:"italic"}}>log 2+ days</span>}</span>
           </div>
           <div style={{height:5,background:P.roseLite,borderRadius:3}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
           {ws!=null&&ws<=goalWs&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginTop:8,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
@@ -1867,7 +1877,7 @@ export default function App(){
               </div>
               <div style={{textAlign:"right",flexShrink:0}}>
                 <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
-                <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw} kg`}{isUp?" ↑":isDown?" ↓":""}</p>
+                <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw} ${ex.unit||"kg"}`}{isUp?" ↑":isDown?" ↓":""}</p>
               </div>
             </div>);
           })}
