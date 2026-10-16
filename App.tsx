@@ -34,6 +34,8 @@ const IcDont=({c=P.roseDark,s=13})=><svg width={s} height={s} viewBox="0 0 24 24
 const IcEdit=({c=P.roseDark,s=14})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const IcTrash=({c=P.roseMid,s=14})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>;
 const IcRefresh=({c=P.roseDark,s=14})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>;
+const IcExport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>;
+const IcImport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 15v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></svg>;
 
 // Session icon map
 const SessIcon={glutes:IcGlutes,core:IcCore,shape:IcShape};
@@ -117,6 +119,40 @@ const ld=()=>{
   }catch{return{};}
 };
 const sv=(d)=>{try{localStorage.setItem(KEY,JSON.stringify(d));}catch{}};
+const APP_VERSION="1.1";
+
+// ── BACKUP ───────────────────────────────────────────────────────────────────
+const localDay=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const backupJson=(data)=>JSON.stringify({app:"PeachFit",format:1,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),data},null,2);
+// Accepts a PeachFit backup file (or raw saved data) and returns data ready to save
+const parseBackup=(text)=>{
+  const raw=JSON.parse(text);
+  const d=raw&&raw.app==="PeachFit"&&raw.data?raw.data:raw;
+  if(!d||typeof d!=="object"||!Array.isArray(d.sessions)||!Array.isArray(d.bodyLog))throw new Error("not a PeachFit backup");
+  return{
+    data:{...d,sessions:d.sessions,bodyLog:d.bodyLog,nutritionLog:Array.isArray(d.nutritionLog)?d.nutritionLog:[],profile:{...DEFAULT_PROFILE,...(d.profile||{})}},
+    exportedAt:raw&&raw.exportedAt?raw.exportedAt:null,
+  };
+};
+// Share sheet on phones (Save to Files, AirDrop, mail); plain download where sharing files isn't supported
+const exportBackup=(data)=>{
+  const json=backupJson(data);
+  const name=`peachfit-backup-${localDay()}.json`;
+  const download=()=>{
+    const url=URL.createObjectURL(new Blob([json],{type:"application/json"}));
+    const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  };
+  const nav:any=navigator;
+  for(const type of ["application/json","text/plain"]){
+    let file=null;try{file=new File([json],name,{type});}catch{}
+    if(file&&nav.canShare&&nav.canShare({files:[file]})){
+      nav.share({files:[file],title:"PeachFit backup"}).catch(e=>{if(!e||e.name!=="AbortError")download();});
+      return;
+    }
+  }
+  download();
+};
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
 function getWeight(ex,sessions,sessionId=null){
@@ -225,20 +261,20 @@ function getETA(sessions,profile,bodyLog=[]){
 
 // ── SVG EXERCISE ANIMATIONS ───────────────────────────────────────────────────
 const A={
-  ht:()=><svg viewBox="0 0 120 90" width="120" height="90"><style>{`@keyframes th{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}.hb{transform-origin:40px 55px;animation:th 1.6s ease-in-out infinite}`}</style><rect x="5" y="62" width="40" height="7" rx="4" fill={P.roseLite}/><rect x="90" y="54" width="25" height="7" rx="3" fill={P.roseMid}/><g className="hb"><ellipse cx="40" cy="57" rx="16" ry="9" fill={P.roseDark}/><rect x="30" y="38" width="20" height="22" rx="6" fill={P.rosePrimary}/><circle cx="40" cy="28" r="10" fill={P.roseHero}/><rect x="28" y="60" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="42" y="60" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="22" y="56" width="82" height="6" rx="3" fill={P.roseMid} opacity="0.5"/></g></svg>,
-  rdl:()=><svg viewBox="0 0 120 100" width="120" height="100"><style>{`@keyframes hg{0%,100%{transform:rotate(0deg)}50%{transform:rotate(40deg)}}.rb{transform-origin:60px 65px;animation:hg 2s ease-in-out infinite}`}</style><rect x="50" y="78" width="12" height="20" rx="5" fill={P.rosePrimary}/><rect x="44" y="78" width="10" height="18" rx="5" fill={P.rosePrimary}/><g className="rb"><rect x="52" y="40" width="14" height="28" rx="5" fill={P.roseDark}/><circle cx="59" cy="30" r="10" fill={P.roseHero}/><rect x="30" y="60" width="58" height="7" rx="3" fill={P.roseMid}/></g></svg>,
-  kb:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes kk{0%,100%{transform:rotate(0deg)}60%{transform:rotate(-55deg)}}.kl{transform-origin:70px 58px;animation:kk 1.8s ease-in-out infinite}`}</style><rect x="10" y="30" width="8" height="50" rx="3" fill={P.roseLite}/><rect x="28" y="40" width="30" height="12" rx="5" fill={P.roseDark}/><rect x="52" y="38" width="14" height="25" rx="5" fill={P.rosePrimary}/><rect x="46" y="60" width="14" height="18" rx="5" fill={P.rosePrimary}/><circle cx="59" cy="30" r="9" fill={P.roseHero}/><g className="kl"><rect x="60" y="58" width="13" height="28" rx="5" fill={P.accent}/><rect x="58" y="82" width="20" height="7" rx="3" fill={P.roseDark}/></g></svg>,
-  fp:()=><svg viewBox="0 0 140 80" width="140" height="80"><style>{`@keyframes fp{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}.fb{animation:fp 1s ease-in-out infinite}`}</style><rect x="0" y="72" width="140" height="5" rx="2" fill={P.roseLite}/><g className="fb"><ellipse cx="70" cy="56" rx="22" ry="12" fill={P.roseDark}/><rect x="56" y="42" width="26" height="20" rx="6" fill={P.rosePrimary}/><circle cx="70" cy="34" r="10" fill={P.roseHero}/><line x1="48" y1="58" x2="24" y2="45" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/><line x1="24" y1="45" x2="10" y2="64" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="92" y1="58" x2="116" y2="45" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/><line x1="116" y1="45" x2="130" y2="64" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
-  cc:()=><svg viewBox="0 0 120 110" width="120" height="110"><style>{`@keyframes cr{0%,100%{transform:rotate(0deg)}55%{transform:rotate(35deg)}}.cb{transform-origin:60px 68px;animation:cr 1.8s ease-in-out infinite}`}</style><rect x="100" y="0" width="6" height="110" rx="2" fill={P.roseLite}/><line x1="104" y1="20" x2="72" y2="38" stroke={P.roseMid} strokeWidth="3"/><rect x="46" y="78" width="12" height="26" rx="5" fill={P.rosePrimary}/><rect x="60" y="78" width="12" height="26" rx="5" fill={P.rosePrimary}/><g className="cb"><rect x="52" y="42" width="14" height="30" rx="5" fill={P.roseDark}/><circle cx="59" cy="32" r="10" fill={P.roseHero}/><line x1="59" y1="42" x2="45" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="59" y1="42" x2="73" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
-  wc:()=><svg viewBox="0 0 140 110" width="140" height="110"><style>{`@keyframes ch{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg) translateX(10px)}100%{transform:rotate(-20deg)}}.wb{transform-origin:70px 65px;animation:ch 2s ease-in-out infinite}`}</style><rect x="10" y="85" width="120" height="6" rx="2" fill={P.roseLite}/><g className="wb"><rect x="62" y="50" width="16" height="30" rx="6" fill={P.roseDark}/><circle cx="70" cy="40" r="10" fill={P.roseHero}/><rect x="56" y="78" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="72" y="78" width="12" height="18" rx="5" fill={P.rosePrimary}/><line x1="70" y1="55" x2="40" y2="75" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><circle cx="36" cy="78" r="5" fill={P.roseMid}/></g></svg>,
-  hk:()=><svg viewBox="0 0 120 120" width="120" height="120"><style>{`@keyframes kr{0%,100%{transform:rotate(0deg)}55%{transform:rotate(-80deg)}}.kn{transform-origin:60px 65px;animation:kr 2s ease-in-out infinite}`}</style><rect x="20" y="2" width="80" height="8" rx="3" fill={P.roseMid}/><line x1="50" y1="10" x2="50" y2="28" stroke={P.roseMid} strokeWidth="3"/><line x1="70" y1="10" x2="70" y2="28" stroke={P.roseMid} strokeWidth="3"/><rect x="52" y="28" width="16" height="30" rx="6" fill={P.roseDark}/><circle cx="60" cy="20" r="10" fill={P.roseHero}/><line x1="52" y1="35" x2="38" y2="30" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="68" y1="35" x2="82" y2="30" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><g className="kn"><rect x="54" y="58" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="48" y="76" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="60" y="76" width="12" height="18" rx="5" fill={P.rosePrimary}/></g></svg>,
-  pp:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes pr{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.3)}}.pa{transform-origin:72px 56px;animation:pr 2s ease-in-out infinite}`}</style><rect x="120" y="0" width="6" height="100" rx="2" fill={P.roseLite}/><rect x="62" y="80" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="76" y="80" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="64" y="46" width="16" height="36" rx="6" fill={P.roseDark}/><circle cx="72" cy="36" r="10" fill={P.roseHero}/><g className="pa"><line x1="72" y1="56" x2="55" y2="56" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="72" y1="56" x2="89" y2="56" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><circle cx="50" cy="56" r="5" fill={P.roseMid}/></g></svg>,
-  sp:()=><svg viewBox="0 0 140 80" width="140" height="80"><style>{`@keyframes dp{0%,100%{transform:translateY(0)}50%{transform:translateY(14px)}}.sb{animation:dp 2s ease-in-out infinite}`}</style><g className="sb"><circle cx="110" cy="22" r="10" fill={P.roseHero}/><rect x="50" y="30" width="58" height="14" rx="6" fill={P.roseDark}/><rect x="22" y="40" width="36" height="12" rx="5" fill={P.rosePrimary}/><line x1="22" y1="50" x2="8" y2="60" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/></g><rect x="0" y="68" width="140" height="5" rx="2" fill={P.roseLite}/><rect x="8" y="58" width="14" height="10" rx="4" fill={P.roseDark}/></svg>,
-  vac:()=><svg viewBox="0 0 100 110" width="100" height="110"><style>{`@keyframes vs{0%,100%{transform:scaleX(1)}50%{transform:scaleX(0.82)}}.vb{transform-origin:50px 66px;animation:vs 2.5s ease-in-out infinite}`}</style><rect x="40" y="85" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="54" y="85" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="38" y="52" width="8" height="36" rx="4" fill={P.rosePrimary}/><rect x="54" y="52" width="8" height="36" rx="4" fill={P.rosePrimary}/><g className="vb"><rect x="38" y="48" width="24" height="36" rx="8" fill={P.roseDark}/></g><circle cx="50" cy="32" r="14" fill={P.roseHero}/></svg>,
-  be:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex{0%,100%{transform:rotate(30deg)}55%{transform:rotate(-10deg)}}.eb{transform-origin:55px 60px;animation:ex 2s ease-in-out infinite}`}</style><rect x="40" y="50" width="20" height="40" rx="6" fill={P.roseLite}/><rect x="38" y="88" width="24" height="8" rx="3" fill={P.roseMid}/><g className="eb"><rect x="42" y="36" width="16" height="28" rx="6" fill={P.roseDark}/><circle cx="50" cy="26" r="10" fill={P.roseHero}/><rect x="44" y="62" width="12" height="22" rx="5" fill={P.rosePrimary}/><line x1="50" y1="42" x2="30" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="50" y1="42" x2="70" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
-  aw:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes rll{0%,100%{transform:translateX(0) rotate(0deg)}50%{transform:translateX(28px) rotate(30deg)}}.arb{animation:rll 2s ease-in-out infinite}`}</style><rect x="0" y="80" width="140" height="5" rx="2" fill={P.roseLite}/><g className="arb"><circle cx="50" cy="72" r="10" fill={P.roseMid}/><rect x="44" y="56" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="36" y="54" width="28" height="6" rx="3" fill={P.roseDark}/><rect x="38" y="38" width="24" height="20" rx="6" fill={P.roseDark}/><circle cx="50" cy="28" r="10" fill={P.roseHero}/><line x1="50" y1="44" x2="30" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="50" y1="44" x2="70" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
-  bc:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes cl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-60deg)}}@keyframes cr2{0%,100%{transform:rotate(-60deg)}50%{transform:rotate(0deg)}}.ll{transform-origin:65px 65px;animation:cl 1.2s ease-in-out infinite}.rl{transform-origin:75px 65px;animation:cr2 1.2s ease-in-out infinite}`}</style><rect x="0" y="82" width="140" height="5" rx="2" fill={P.roseLite}/><ellipse cx="70" cy="56" rx="22" ry="10" fill={P.roseDark}/><circle cx="70" cy="36" r="12" fill={P.roseHero}/><line x1="60" y1="40" x2="44" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="80" y1="40" x2="96" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><g className="ll"><rect x="58" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g><g className="rl"><rect x="70" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g></svg>,
-  cd:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes wk{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}@keyframes sl{0%,100%{transform:rotate(-22deg)}50%{transform:rotate(22deg)}}@keyframes sr{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-22deg)}}.wlk{animation:wk 0.85s ease-in-out infinite}.sll{transform-origin:68px 68px;animation:sl 0.85s ease-in-out infinite}.slr{transform-origin:74px 68px;animation:sr 0.85s ease-in-out infinite}`}</style><rect x="0" y="85" width="140" height="10" rx="3" fill={P.roseLite}/><g className="wlk"><circle cx="71" cy="28" r="12" fill={P.roseHero}/><rect x="63" y="40" width="16" height="28" rx="6" fill={P.roseDark}/><g className="sll"><rect x="62" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><g className="slr"><rect x="67" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><line x1="63" y1="50" x2="45" y2="62" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="79" y1="50" x2="97" y2="42" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
+  ht:()=><svg viewBox="0 0 120 90" width="120" height="90"><style>{`@keyframes ex-th{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}.ex-hb{transform-origin:40px 55px;animation:ex-th 1.6s ease-in-out infinite}`}</style><rect x="5" y="62" width="40" height="7" rx="4" fill={P.roseLite}/><rect x="90" y="54" width="25" height="7" rx="3" fill={P.roseMid}/><g className="ex-hb"><ellipse cx="40" cy="57" rx="16" ry="9" fill={P.roseDark}/><rect x="30" y="38" width="20" height="22" rx="6" fill={P.rosePrimary}/><circle cx="40" cy="28" r="10" fill={P.roseHero}/><rect x="28" y="60" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="42" y="60" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="22" y="56" width="82" height="6" rx="3" fill={P.roseMid} opacity="0.5"/></g></svg>,
+  rdl:()=><svg viewBox="0 0 120 100" width="120" height="100"><style>{`@keyframes ex-hg{0%,100%{transform:rotate(0deg)}50%{transform:rotate(40deg)}}.ex-rb{transform-origin:60px 65px;animation:ex-hg 2s ease-in-out infinite}`}</style><rect x="50" y="78" width="12" height="20" rx="5" fill={P.rosePrimary}/><rect x="44" y="78" width="10" height="18" rx="5" fill={P.rosePrimary}/><g className="ex-rb"><rect x="52" y="40" width="14" height="28" rx="5" fill={P.roseDark}/><circle cx="59" cy="30" r="10" fill={P.roseHero}/><rect x="30" y="60" width="58" height="7" rx="3" fill={P.roseMid}/></g></svg>,
+  kb:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes ex-kk{0%,100%{transform:rotate(0deg)}60%{transform:rotate(-55deg)}}.ex-kl{transform-origin:70px 58px;animation:ex-kk 1.8s ease-in-out infinite}`}</style><rect x="10" y="30" width="8" height="50" rx="3" fill={P.roseLite}/><rect x="28" y="40" width="30" height="12" rx="5" fill={P.roseDark}/><rect x="52" y="38" width="14" height="25" rx="5" fill={P.rosePrimary}/><rect x="46" y="60" width="14" height="18" rx="5" fill={P.rosePrimary}/><circle cx="59" cy="30" r="9" fill={P.roseHero}/><g className="ex-kl"><rect x="60" y="58" width="13" height="28" rx="5" fill={P.accent}/><rect x="58" y="82" width="20" height="7" rx="3" fill={P.roseDark}/></g></svg>,
+  fp:()=><svg viewBox="0 0 140 80" width="140" height="80"><style>{`@keyframes ex-fp{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}.ex-fb{animation:ex-fp 1s ease-in-out infinite}`}</style><rect x="0" y="72" width="140" height="5" rx="2" fill={P.roseLite}/><g className="ex-fb"><ellipse cx="70" cy="56" rx="22" ry="12" fill={P.roseDark}/><rect x="56" y="42" width="26" height="20" rx="6" fill={P.rosePrimary}/><circle cx="70" cy="34" r="10" fill={P.roseHero}/><line x1="48" y1="58" x2="24" y2="45" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/><line x1="24" y1="45" x2="10" y2="64" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="92" y1="58" x2="116" y2="45" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/><line x1="116" y1="45" x2="130" y2="64" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
+  cc:()=><svg viewBox="0 0 120 110" width="120" height="110"><style>{`@keyframes ex-cr{0%,100%{transform:rotate(0deg)}55%{transform:rotate(35deg)}}.ex-cb{transform-origin:60px 68px;animation:ex-cr 1.8s ease-in-out infinite}`}</style><rect x="100" y="0" width="6" height="110" rx="2" fill={P.roseLite}/><line x1="104" y1="20" x2="72" y2="38" stroke={P.roseMid} strokeWidth="3"/><rect x="46" y="78" width="12" height="26" rx="5" fill={P.rosePrimary}/><rect x="60" y="78" width="12" height="26" rx="5" fill={P.rosePrimary}/><g className="ex-cb"><rect x="52" y="42" width="14" height="30" rx="5" fill={P.roseDark}/><circle cx="59" cy="32" r="10" fill={P.roseHero}/><line x1="59" y1="42" x2="45" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="59" y1="42" x2="73" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
+  wc:()=><svg viewBox="0 0 140 110" width="140" height="110"><style>{`@keyframes ex-ch{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg) translateX(10px)}100%{transform:rotate(-20deg)}}.ex-wb{transform-origin:70px 65px;animation:ex-ch 2s ease-in-out infinite}`}</style><rect x="10" y="85" width="120" height="6" rx="2" fill={P.roseLite}/><g className="ex-wb"><rect x="62" y="50" width="16" height="30" rx="6" fill={P.roseDark}/><circle cx="70" cy="40" r="10" fill={P.roseHero}/><rect x="56" y="78" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="72" y="78" width="12" height="18" rx="5" fill={P.rosePrimary}/><line x1="70" y1="55" x2="40" y2="75" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><circle cx="36" cy="78" r="5" fill={P.roseMid}/></g></svg>,
+  hk:()=><svg viewBox="0 0 120 120" width="120" height="120"><style>{`@keyframes ex-kr{0%,100%{transform:rotate(0deg)}55%{transform:rotate(-80deg)}}.ex-kn{transform-origin:60px 65px;animation:ex-kr 2s ease-in-out infinite}`}</style><rect x="20" y="2" width="80" height="8" rx="3" fill={P.roseMid}/><line x1="50" y1="10" x2="50" y2="28" stroke={P.roseMid} strokeWidth="3"/><line x1="70" y1="10" x2="70" y2="28" stroke={P.roseMid} strokeWidth="3"/><rect x="52" y="28" width="16" height="30" rx="6" fill={P.roseDark}/><circle cx="60" cy="20" r="10" fill={P.roseHero}/><line x1="52" y1="35" x2="38" y2="30" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="68" y1="35" x2="82" y2="30" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><g className="ex-kn"><rect x="54" y="58" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="48" y="76" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="60" y="76" width="12" height="18" rx="5" fill={P.rosePrimary}/></g></svg>,
+  pp:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-pr{0%,100%{transform:scaleX(1)}50%{transform:scaleX(1.3)}}.ex-pa{transform-origin:72px 56px;animation:ex-pr 2s ease-in-out infinite}`}</style><rect x="120" y="0" width="6" height="100" rx="2" fill={P.roseLite}/><rect x="62" y="80" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="76" y="80" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="64" y="46" width="16" height="36" rx="6" fill={P.roseDark}/><circle cx="72" cy="36" r="10" fill={P.roseHero}/><g className="ex-pa"><line x1="72" y1="56" x2="55" y2="56" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="72" y1="56" x2="89" y2="56" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><circle cx="50" cy="56" r="5" fill={P.roseMid}/></g></svg>,
+  sp:()=><svg viewBox="0 0 140 80" width="140" height="80"><style>{`@keyframes ex-dp{0%,100%{transform:translateY(0)}50%{transform:translateY(14px)}}.ex-sb{animation:ex-dp 2s ease-in-out infinite}`}</style><g className="ex-sb"><circle cx="110" cy="22" r="10" fill={P.roseHero}/><rect x="50" y="30" width="58" height="14" rx="6" fill={P.roseDark}/><rect x="22" y="40" width="36" height="12" rx="5" fill={P.rosePrimary}/><line x1="22" y1="50" x2="8" y2="60" stroke={P.rosePrimary} strokeWidth="8" strokeLinecap="round"/></g><rect x="0" y="68" width="140" height="5" rx="2" fill={P.roseLite}/><rect x="8" y="58" width="14" height="10" rx="4" fill={P.roseDark}/></svg>,
+  vac:()=><svg viewBox="0 0 100 110" width="100" height="110"><style>{`@keyframes ex-vs{0%,100%{transform:scaleX(1)}50%{transform:scaleX(0.82)}}.ex-vb{transform-origin:50px 66px;animation:ex-vs 2.5s ease-in-out infinite}`}</style><rect x="40" y="85" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="54" y="85" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="38" y="52" width="8" height="36" rx="4" fill={P.rosePrimary}/><rect x="54" y="52" width="8" height="36" rx="4" fill={P.rosePrimary}/><g className="ex-vb"><rect x="38" y="48" width="24" height="36" rx="8" fill={P.roseDark}/></g><circle cx="50" cy="32" r="14" fill={P.roseHero}/></svg>,
+  be:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-ex{0%,100%{transform:rotate(30deg)}55%{transform:rotate(-10deg)}}.ex-eb{transform-origin:55px 60px;animation:ex-ex 2s ease-in-out infinite}`}</style><rect x="40" y="50" width="20" height="40" rx="6" fill={P.roseLite}/><rect x="38" y="88" width="24" height="8" rx="3" fill={P.roseMid}/><g className="ex-eb"><rect x="42" y="36" width="16" height="28" rx="6" fill={P.roseDark}/><circle cx="50" cy="26" r="10" fill={P.roseHero}/><rect x="44" y="62" width="12" height="22" rx="5" fill={P.rosePrimary}/><line x1="50" y1="42" x2="30" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="50" y1="42" x2="70" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
+  aw:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes ex-rll{0%,100%{transform:translateX(0) rotate(0deg)}50%{transform:translateX(28px) rotate(30deg)}}.ex-arb{animation:ex-rll 2s ease-in-out infinite}`}</style><rect x="0" y="80" width="140" height="5" rx="2" fill={P.roseLite}/><g className="ex-arb"><circle cx="50" cy="72" r="10" fill={P.roseMid}/><rect x="44" y="56" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="36" y="54" width="28" height="6" rx="3" fill={P.roseDark}/><rect x="38" y="38" width="24" height="20" rx="6" fill={P.roseDark}/><circle cx="50" cy="28" r="10" fill={P.roseHero}/><line x1="50" y1="44" x2="30" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="50" y1="44" x2="70" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
+  bc:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes ex-cl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-60deg)}}@keyframes ex-cr2{0%,100%{transform:rotate(-60deg)}50%{transform:rotate(0deg)}}.ex-ll{transform-origin:65px 65px;animation:ex-cl 1.2s ease-in-out infinite}.ex-rl{transform-origin:75px 65px;animation:ex-cr2 1.2s ease-in-out infinite}`}</style><rect x="0" y="82" width="140" height="5" rx="2" fill={P.roseLite}/><ellipse cx="70" cy="56" rx="22" ry="10" fill={P.roseDark}/><circle cx="70" cy="36" r="12" fill={P.roseHero}/><line x1="60" y1="40" x2="44" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="80" y1="40" x2="96" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><g className="ex-ll"><rect x="58" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g><g className="ex-rl"><rect x="70" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g></svg>,
+  cd:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-wk{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}@keyframes ex-sl{0%,100%{transform:rotate(-22deg)}50%{transform:rotate(22deg)}}@keyframes ex-sr{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-22deg)}}.ex-wlk{animation:ex-wk 0.85s ease-in-out infinite}.ex-sll{transform-origin:68px 68px;animation:ex-sl 0.85s ease-in-out infinite}.ex-slr{transform-origin:74px 68px;animation:ex-sr 0.85s ease-in-out infinite}`}</style><rect x="0" y="85" width="140" height="10" rx="3" fill={P.roseLite}/><g className="ex-wlk"><circle cx="71" cy="28" r="12" fill={P.roseHero}/><rect x="63" y="40" width="16" height="28" rx="6" fill={P.roseDark}/><g className="ex-sll"><rect x="62" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><g className="ex-slr"><rect x="67" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><line x1="63" y1="50" x2="45" y2="62" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="79" y1="50" x2="97" y2="42" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
 };
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
@@ -250,6 +286,7 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 .app{font-family:'DM Sans',sans-serif;background:${P.white};height:100dvh;max-width:430px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden;position:relative;}
 .screen{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 .screen-full{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.screen-scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:flex;flex-direction:column;}
 .serif{font-family:'Playfair Display',serif;}
 .mono{font-family:'Tenor Sans',sans-serif;}
 .card{background:${P.white};border-radius:16px;box-shadow:0 2px 12px rgba(212,120,138,0.09);padding:14px 16px;}
@@ -291,7 +328,22 @@ export default function App(){
   const[swapSelected,setSwapSelected]=useState(null);
   const[logModal,setLogModal]=useState<string|null>(null);
   const[progressModal,setProgressModal]=useState(null); // "chart"|"week"|"strength"|"milestones"
-  const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"
+  const[meModal,setMeModal]=useState(null); // "goals"|"resetWeights"|"clearData"|"import"
+  const[importState,setImportState]=useState(null); // {ok,data,exportedAt} after a backup file was picked
+  const importInputRef=useRef(null);
+  const onImportFile=e=>{
+    const file=e.target.files&&e.target.files[0];
+    e.target.value="";
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=()=>{
+      try{setImportState({ok:true,...parseBackup(String(reader.result))});}
+      catch{setImportState({ok:false});}
+      setMeModal("import");
+    };
+    reader.onerror=()=>{setImportState({ok:false});setMeModal("import");};
+    reader.readAsText(file);
+  };
   const[planModal,setPlanModal]=useState(null); // session plan preview modal
   const[elapsed,setElapsed]=useState(0);
   const elapsedRef=useRef(0);
@@ -494,9 +546,9 @@ export default function App(){
       else newLog.push({date:today,hit:null,skipped:true}); // skipped: show collapsed state
       persist({...data,nutritionLog:newLog});
     };
-    return(<div className="screen-full">
+    return(<div className="screen-scroll">
       {/* Header — identical to Me + Stats */}
-      <div style={{background:P.roseDeep,padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{background:P.roseDeep,padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>{getGreeting()}</p>
         <h1 className="serif" style={{fontSize:30,color:"white",fontWeight:400,lineHeight:1.15}}>Ready, <em style={{color:P.roseHero}}>{data.profile.name}?</em></h1>
@@ -504,7 +556,7 @@ export default function App(){
       </div>
 
       {/* BODY */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"20px 14px 20px",gap:10,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      <div style={{flex:"1 0 auto",display:"flex",flexDirection:"column",padding:"20px 14px 20px",gap:10,background:P.roseLite}}>
 
         {/* Banner */}
         <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 14px 14px 0",padding:"12px 16px",flexShrink:0,boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
@@ -543,7 +595,7 @@ export default function App(){
         )}
 
         {/* Session cards */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:10,minHeight:0,overflow:"hidden"}}>
+        <div style={{flex:"1 0 auto",display:"flex",flexDirection:"column",gap:10}}>
           {SESSIONS.map(pl=>{
             const SIcon=SessIcon[pl.id];
             const isSuggested=pl.id===suggested.id;
@@ -696,7 +748,7 @@ export default function App(){
       const nextEx=sess.nextExIdx!==undefined?active.exercises[sess.nextExIdx]:null;
       const nextIsNewEx=sess.nextExIdx!==ei;
       return(<div className="screen-full" style={{background:P.roseDeep}}>
-        <div style={{padding:"96px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
           <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
           <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
@@ -754,7 +806,7 @@ export default function App(){
     if(!ex)return null;
     return(<div className="screen-full" style={{background:P.roseDeep}}>
       {/* Top bar */}
-      <div style={{padding:"96px 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+      <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
         <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
         <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
@@ -765,7 +817,7 @@ export default function App(){
         <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginTop:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
       </div>
       {/* Main content — flex fills remaining space, no justifyContent:center so layout is top-anchored */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"22px 24px",overflow:"hidden"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"22px 24px",overflowY:"auto",minHeight:0}}>
         {/* Exercise identity */}
         <div style={{textAlign:"center",marginBottom:16}}>
           {/* Badge row — always 24px tall so layout never shifts when badges appear/disappear */}
@@ -851,15 +903,15 @@ export default function App(){
     const pr=getProteinHitRate(data.nutritionLog);
     const lowProtein=pr&&pr.total>=3&&pr.rate<3/7;
     const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
-    return(<div className="screen-full" style={{background:P.roseDeep}}>
+    return(<div className="screen-scroll" style={{background:P.roseDeep}}>
       {/* Header — matches Stats: 100px top, 20px sides, 40px bottom */}
-      <div style={{padding:"96px 20px 14px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 14px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:6}}>Session Complete</p>
         <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>Well done,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h1>
       </div>
       {/* Panels — same roseLite background, no scroll */}
-      <div style={{flex:1,overflow:"hidden",background:P.roseLite,padding:"12px 14px 12px",display:"flex",flexDirection:"column",gap:7}}>
+      <div style={{flex:"1 0 auto",background:P.roseLite,padding:"12px 14px 12px",display:"flex",flexDirection:"column",gap:7}}>
         {/* Stat chips */}
         <div style={{display:"flex",gap:8,flexShrink:0}}>
           {([[IcClock,fmtDur(summary.duration),"Time"],[IcFire,`~${summary.calories}`,("kcal" as string)],[IcTrain,`${doneSets}/${totSets}`,"Sets"]] as [any,string,string][]).map(([Ic,v,l])=>(
@@ -884,7 +936,7 @@ export default function App(){
           ))}
         </div>)}
         {/* Session recap */}
-        <div style={{background:P.white,borderRadius:14,padding:"10px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",minHeight:0,overflow:"hidden"}}>
+        <div style={{background:P.white,borderRadius:14,padding:"10px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 0 auto"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:6,borderBottom:`1px solid ${P.roseLite}`,marginBottom:2}}>
             <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Session Recap</p>
           </div>
@@ -1091,10 +1143,10 @@ export default function App(){
       if(coachParts.length===0)coachParts.push(raw);
     })();
 
-    return(<div className="screen-full" style={{background:P.roseDeep}}>
+    return(<div className="screen-scroll" style={{background:P.roseDeep}}>
 
       {/* ── HEADER — matches Today tab: 100px top / 20px sides / 40px bottom ── */}
-      <div style={{padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+      <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
         <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your progress</p>
         <h1 className="serif" style={{fontSize:24,color:"white",fontWeight:400,lineHeight:1.2}}>
@@ -1106,10 +1158,10 @@ export default function App(){
       </div>
 
       {/* ── PANELS ── */}
-      <div style={{flex:1,display:"flex",flexDirection:"column",padding:"14px 14px 14px",gap:8,overflow:"hidden",minHeight:0,background:P.roseLite}}>
+      <div style={{flex:"1 0 auto",display:"flex",flexDirection:"column",padding:"14px 14px 14px",gap:8,background:P.roseLite}}>
 
         {/* PANEL 1 — Goal pace */}
-        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.6 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+        <div onClick={()=>setProgressModal("chart")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.6 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:10}}>
             <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goal pace</p>
             <span style={{fontSize:10,color:P.roseMid}}>tap for chart</span>
@@ -1142,7 +1194,7 @@ export default function App(){
             return{id,count:sess28.length};
           });
           return(
-          <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"10px 14px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div onClick={()=>setProgressModal("week")} style={{background:P.white,borderRadius:14,padding:"10px 14px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
             {/* header */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:6,borderBottom:`1px solid ${P.roseLite}`,marginBottom:7,flexShrink:0}}>
               <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>This week · Rhythm</p>
@@ -1182,7 +1234,7 @@ export default function App(){
         })()}
 
         {/* PANEL 3 — Strength PRs */}
-        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.4 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+        <div onClick={()=>setProgressModal("strength")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.4 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:9,borderBottom:`1px solid ${P.roseLite}`,marginBottom:4}}>
             <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength progress</p>
             <span style={{fontSize:10,color:P.roseMid}}>tap for all</span>
@@ -1729,16 +1781,40 @@ export default function App(){
     </div></div>);
   };
 
+  const ImportModal=()=>{
+    if(!importState)return null;
+    const close=()=>{setMeModal(null);setImportState(null);};
+    const icon=<div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center"}}><IcImport c={P.roseDark} s={20}/></div></div>;
+    if(!importState.ok)return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
+      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+      {icon}
+      <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Can't read this file</h3>
+      <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>Choose the .json file saved with Export backup. Nothing was changed.</p>
+      <button onClick={close} className="btnG" style={{width:"100%"}}>CLOSE</button>
+    </div></div>);
+    const d=importState.data;
+    const n=d.sessions.length,m=d.bodyLog.length;
+    const when=importState.exportedAt?new Date(importState.exportedAt).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}):null;
+    return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
+      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+      {icon}
+      <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Replace all data?</h3>
+      <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{when?`Backup from ${when}: `:"Backup: "}{n} session{n!==1?"s":""}, {m} body entr{m!==1?"ies":"y"}. Everything currently in PeachFit is replaced.</p>
+      <button onClick={()=>{persist(d);close();}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESTORE BACKUP</button>
+      <button onClick={close} className="btnG" style={{width:"100%"}}>CANCEL</button>
+    </div></div>);
+  };
+
   // ── ME SCREEN ─────────────────────────────────────────────────────────────
   const Me=()=>{
     const profile=data.profile||DEFAULT_PROFILE;
     const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
 
     return(<>
-      <div className="screen-full" style={{background:P.roseDeep}}>
+      <div className="screen-scroll" style={{background:P.roseDeep}}>
 
         {/* HEADER — identical dimensions to Today + Stats */}
-        <div style={{padding:"96px 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
+        <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 20px",position:"relative",overflow:"hidden",flexShrink:0}}>
           <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,background:"radial-gradient(circle,rgba(242,160,176,0.22),transparent 70%)",borderRadius:"50%",pointerEvents:"none"}}/>
           <p style={{fontSize:9,letterSpacing:"0.28em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Your profile</p>
           <div onClick={()=>setMeModal("profile")} style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer"}}>
@@ -1756,10 +1832,10 @@ export default function App(){
         </div>
 
         {/* PANELS — same system as Stats: flex per panel, no scroll */}
-        <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,padding:"14px 14px 14px",overflow:"hidden",minHeight:0,background:P.roseLite}}>
+        <div style={{flex:"1 0 auto",display:"flex",flexDirection:"column",gap:8,padding:"14px 14px 14px",background:P.roseLite}}>
 
           {/* PANEL 1 — Goals */}
-          <div onClick={()=>setMeModal("goals")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div onClick={()=>setMeModal("goals")} style={{background:P.white,borderRadius:14,padding:"12px 16px",cursor:"pointer",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:10}}>
               <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Goals</p>
               <div style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1779,7 +1855,7 @@ export default function App(){
           </div>
 
           {/* PANEL 2 — Programme */}
-          <div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1.2 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
             <div style={{paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:10}}>
               <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Programme</p>
             </div>
@@ -1802,9 +1878,21 @@ export default function App(){
           </div>
 
           {/* PANEL 3 — Data */}
-          <div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",minHeight:0,display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
             <div style={{paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:10}}>
               <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Data</p>
+            </div>
+            <div style={{display:"flex",gap:10,marginBottom:10}}>
+              <button onClick={()=>exportBackup(data)} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <IcExport c={P.roseDark} s={16}/>
+                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Export backup</p>
+                <p style={{fontSize:11,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>save a copy</p>
+              </button>
+              <button onClick={()=>importInputRef.current&&importInputRef.current.click()} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+                <IcImport c={P.roseDark} s={16}/>
+                <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Import backup</p>
+                <p style={{fontSize:11,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>restore a copy</p>
+              </button>
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>setMeModal("resetWeights")} style={{flex:1,background:P.roseLite,border:`1px solid ${P.rosePrimary}`,borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
@@ -1822,7 +1910,7 @@ export default function App(){
 
           {/* PANEL 4 — App info */}
           <div style={{background:P.white,borderRadius:14,padding:"10px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
-            <p style={{fontSize:10,color:P.roseMid,letterSpacing:"0.04em"}}>v1.0 · May 2026</p>
+            <p style={{fontSize:10,color:P.roseMid,letterSpacing:"0.04em"}}>v{APP_VERSION} · Oct 2026</p>
             <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic"}}>Built with care for {profile.name}</p>
           </div>
 
@@ -1902,7 +1990,9 @@ export default function App(){
       {meModal==="goals"&&<GoalModal/>}
       {meModal==="resetWeights"&&<ResetModal/>}
       {meModal==="clearData"&&<ClearModal/>}
+      {meModal==="import"&&<ImportModal/>}
       {planModal&&<PlanModal/>}
+      <input ref={importInputRef} type="file" accept=".json,application/json,text/plain" onChange={onImportFile} style={{display:"none"}}/>
       <nav className="nav">
         <div className="nav-icons">
         {[["today",IcHome,"Today"],["progress",IcStats,"Stats"],["me",IcMe,"Me"]].map(([t,Ic,lb])=>(
