@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { FONT, P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
@@ -37,6 +37,7 @@ const IcTrash=({c=P.roseMid,s=14})=><svg width={s} height={s} viewBox="0 0 24 24
 const IcRefresh=({c=P.roseDark,s=14})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>;
 const IcExport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 15V3"/><path d="M7 8l5-5 5 5"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/></svg>;
 const IcImport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 15v4a2 2 0 002 2h10a2 2 0 002-2v-4"/></svg>;
+const IcSkip=({c=P.roseMid,s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 6l6 6-6 6"/><path d="M13 6l6 6-6 6"/></svg>;
 
 // Session icon map
 const SessIcon={glutes:IcGlutes,core:IcCore,shape:IcShape};
@@ -234,7 +235,7 @@ function Today(){
 }
 
 function Workout(){
-  const {data,active,sess,setSess,setModal,setSwapModal,finishingRef,completeCurrentSet,advanceAfterRest,requestFinish,requestLeave,totSets,doneSets}=useApp();
+  const {data,active,sess,setSess,setModal,setSwapModal,finishingRef,completeCurrentSet,advanceAfterRest,requestFinish,requestLeave,skipExercise,jumpTo,totSets,doneSets}=useApp();
   if(!active||!sess)return null;
 
   const ei=sess.currentExIdx??0;
@@ -243,18 +244,28 @@ function Workout(){
   const phase=sess.phase??"active";
   const prog=totSets>0?doneSets/totSets:0;
   // cw = what Lynn will actually lift (from sess.weights, editable). Falls back to getWeight if not set.
-  const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,data.sessions,active?.id))):0;
-  const pr=ex?getPR(ex,data.sessions):null;
-  const isUp=ex&&!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
+  const lifts=sinceReset(data);
+  const cw=ex?(ex.bw?"BW":(sess.weights?.[ex.id]??getWeight(ex,lifts,active?.id))):0;
+  const unit=ex?unitOf(ex):"kg";
+  const swappedTo=ex?sess.swapped?.[ex.id]:null;
+  const lastW=ex&&!ex.bw?lastWeight(ex,lifts,active.id):null;
+  // "Weight up" only when it's above the last weight actually lifted (never on the first time)
+  const isUp=ex&&!ex.bw&&!swappedTo&&typeof cw==="number"&&lastW!=null&&cw>lastW;
   const setsCompletedForEx=ex?Object.keys(sess.comp).filter(k=>k.startsWith(`${ex.id}-`)&&sess.comp[k]).length:0;
   const SIcon=SessIcon[active.id];
+  // next exercise that still has sets to do and wasn't skipped (forward first, then earlier ones)
+  const isOpen=i=>Object.keys(sess.comp).filter(k=>k.startsWith(`${active.exercises[i].id}-`)&&sess.comp[k]).length<active.exercises[i].sets&&!(sess.skipped&&sess.skipped[active.exercises[i].id]);
+  const nextOpen=(()=>{for(let i=ei+1;i<active.exercises.length;i++)if(isOpen(i))return i;for(let i=0;i<ei;i++)if(isOpen(i))return i;return -1;})();
 
+  // Progress dots — tap one to jump to that exercise (and back)
   const exDots=(
-    <div style={{display:"flex",gap:4,alignItems:"center",justifyContent:"center"}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",margin:"-10px 0"}}>
       {active.exercises.map((exDot,i)=>{
         const done=Object.keys(sess.comp).filter(k=>k.startsWith(`${exDot.id}-`)&&sess.comp[k]).length>=exDot.sets;
         const cur=i===ei;
-        return(<div key={i} style={{width:cur?24:6,height:6,borderRadius:3,background:done?P.roseDark:cur?P.rosePrimary:"rgba(255,255,255,0.18)",transition:"all 0.3s ease",flexShrink:0}}/>);
+        return(<button key={i} onClick={()=>jumpTo(i)} aria-label={exDot.name} style={{background:"none",border:"none",padding:"10px 5px",cursor:"pointer",display:"flex",alignItems:"center",WebkitAppearance:"none"}}>
+          <div style={{width:cur?24:6,height:6,borderRadius:3,background:done?P.roseDark:cur?P.rosePrimary:"rgba(255,255,255,0.18)",transition:"all 0.3s ease",flexShrink:0}}/>
+        </button>);
       })}
     </div>
   );
@@ -289,8 +300,8 @@ function Workout(){
         <RestRing/>
         <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
           <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
-          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions)} ${nextEx.unit||"kg"}`}</p></>)
-          :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":`${cw} ${ex.unit||"kg"}`}</p></>)}
+          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx))}</p></>)
+          :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":swappedTo?"Swap · not tracked":fmtLoad(cw,unit)}</p></>)}
         </div>
         <button onClick={()=>advanceAfterRest(true)} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
       </div>
@@ -305,9 +316,9 @@ function Workout(){
   if(phase==="done"||doneSets>=totSets){
     return(<div className="screen-full" style={{background:P.roseDeep,alignItems:"center",justifyContent:"center",padding:"40px 28px",textAlign:"center"}}>
       <IcSparkle c={P.roseHero} s={36}/>
-      <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"16px 0 6px"}}>All sets done</p>
+      <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"16px 0 6px"}}>{doneSets>=totSets?"All sets done":"Workout done"}</p>
       <h2 className="serif" style={{fontSize:30,color:"white",fontWeight:400,marginBottom:8}}>Incredible,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
-      <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>Every set complete.</p>
+      <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>{doneSets>=totSets?"Every set complete.":`${doneSets} of ${totSets} sets done.`}</p>
       <button className="btnP" style={{marginBottom:12}} onClick={requestFinish}>FINISH SESSION</button>
       {doneSets<totSets&&<button onClick={()=>{
         finishingRef.current=false;
@@ -353,22 +364,26 @@ function Workout(){
           <div style={{display:"inline-flex",alignItems:"center",background:"rgba(255,255,255,0.07)",borderRadius:14,padding:"10px 22px",marginBottom:10}}>
             <span className="mono" style={{fontSize:38,color:"white",lineHeight:1}}>BW</span>
           </div>
+        ):swappedTo?(
+          <div style={{display:"inline-flex",alignItems:"center",background:"rgba(255,255,255,0.07)",borderRadius:14,padding:"14px 22px",marginBottom:10}}>
+            <span style={{fontSize:13,color:P.roseMid,letterSpacing:"0.04em"}}>Swap · weight not tracked</span>
+          </div>
         ):(
           <div style={{display:"inline-flex",alignItems:"center",gap:0,background:"rgba(255,255,255,0.07)",borderRadius:14,marginBottom:10,overflow:"hidden"}}>
             <button
-              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:Math.max(0,Math.round(((p.weights?.[ex.id]??cw)-ex.step)*4)/4)}}))}
+              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:Math.max(0,roundLoad((p.weights?.[ex.id]??cw)-ex.step,unit))}}))}
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>−</button>
             <div style={{display:"inline-flex",alignItems:"baseline",gap:5,padding:"10px 4px"}}>
               <span className="mono" style={{fontSize:38,color:isUp?P.roseHero:"white",lineHeight:1,fontVariantNumeric:"tabular-nums"}}>{cw}</span>
-              <span style={{fontSize:15,color:P.roseMid}}>{ex.unit||"kg"}</span>
+              <span style={{fontSize:15,color:P.roseMid}}>{unit}</span>
               {isUp&&<span style={{marginLeft:2}}><IcArrowUp c={P.roseHero} s={14}/></span>}
             </div>
             <button
-              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:Math.round(((p.weights?.[ex.id]??cw)+ex.step)*4)/4}}))}
+              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:roundLoad((p.weights?.[ex.id]??cw)+ex.step,unit)}}))}
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>+</button>
           </div>
         )}
-        <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:6,letterSpacing:"0.06em"}}>tap − + to adjust</p>
+        <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:6,letterSpacing:"0.06em",visibility:ex.bw||swappedTo?"hidden":"visible"}}>tap − + to adjust</p>
         <p className="mono" style={{fontSize:14,color:P.rosePrimary}}>{ex.sets} sets × {ex.reps}</p>
       </div>
       {/* Set tracker */}
@@ -388,8 +403,8 @@ function Workout(){
             <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
           </button>
         ):(
-          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n,lastActionAt:Date.now()}));else setSess(p=>({...p,phase:"done",lastActionAt:Date.now()}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            {ei+1<active.exercises.length?`Next: ${active.exercises[ei+1].name} →`:"Finish Session"}
+          <button onClick={()=>{if(nextOpen>=0)jumpTo(nextOpen);else setSess(p=>({...p,phase:"done",lastActionAt:Date.now()}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            {nextOpen>=0?`Next: ${active.exercises[nextOpen].name} →`:"Finish Session"}
           </button>
         )}
       </div>
@@ -400,6 +415,9 @@ function Workout(){
         </button>
         <button onClick={()=>{if(ex.swaps?.length>0)setSwapModal(ex);}} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:ex.swaps?.length>0?"pointer":"default",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5,opacity:ex.swaps?.length>0?1:0,pointerEvents:ex.swaps?.length>0?"auto":"none"}}>
           <IcSwap c={P.roseMid} s={13}/> Swap
+        </button>
+        <button onClick={()=>skipExercise(ex.id)} style={{flex:1,background:"none",border:`1.5px solid rgba(242,160,176,0.25)`,color:P.roseMid,borderRadius:40,padding:"9px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",display:"flex",alignItems:"center",justifyContent:"center",gap:5,visibility:setsCompletedForEx<ex.sets?"visible":"hidden"}}>
+          <IcSkip c={P.roseMid} s={13}/> Skip
         </button>
       </div>
     </div>
@@ -485,7 +503,7 @@ function WorkoutSheet(){
 }
 
 function Summary(){
-  const {tab,setTab,data,active,summary,setLogModal,clearWorkout,totSets,doneSets}=useApp();
+  const {setTab,data,active,summary,setLogModal,clearWorkout,totSets,doneSets}=useApp();
   const pr=getProteinHitRate(data.nutritionLog);
   const lowProtein=pr&&pr.total>=3&&pr.rate<3/7;
   const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
@@ -529,9 +547,9 @@ function Summary(){
         {active?.exercises.map(ex=>{
           const d=summary.csets?.[ex.id]||0;
           return(<div key={ex.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"5px 0",borderBottom:`1px solid ${P.roseLite}`}}>
-            <span style={{fontSize:13,color:d>=ex.sets?P.roseDeep:P.roseMid,fontWeight:d>=ex.sets?500:400}}>{ex.name}</span>
+            <span style={{fontSize:13,color:d>=ex.sets?P.roseDeep:P.roseMid,fontWeight:d>=ex.sets?500:400}}>{summary.swapped?.[ex.id]||ex.name}</span>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
-              <span className="mono" style={{fontSize:13,color:P.roseDark}}>{d}/{ex.sets}</span>
+              <span className="mono" style={{fontSize:13,color:P.roseDark}}>{(summary.skipped||[]).includes(ex.id)?"skipped":`${d}/${ex.sets}`}</span>
               {d>=ex.sets&&<IcCheck c={P.roseDark} s={12}/>}
             </div>
           </div>);
@@ -599,10 +617,10 @@ function Modal(){
 }
 
 function SwapModal(){
-  const {setSess,swapModal,setSwapModal}=useApp();
+  const {setSess,swapModal,setSwapModal,skipExercise}=useApp();
   const[swapSelected,setSwapSelected]=useState(null);
   if(!swapModal)return null;
-  const doSwap=()=>{if(!swapSelected)return;setSess(prev=>({...prev,lastActionAt:Date.now(),swapped:{...prev.swapped,[swapModal.id]:swapSelected}}));setSwapModal(null);};
+  const doSwap=()=>{if(!swapSelected)return;if(/^skip\b/i.test(swapSelected)){skipExercise(swapModal.id);setSwapModal(null);return;}setSess(prev=>({...prev,lastActionAt:Date.now(),swapped:{...prev.swapped,[swapModal.id]:swapSelected}}));setSwapModal(null);};
   const close=()=>setSwapModal(null);
   return(<div className="mo" onClick={close}>
     <div className="ms sl" onClick={e=>e.stopPropagation()}>
@@ -785,8 +803,10 @@ function Progress(){
         </div>
         {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex)=>{
           const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
-          const pr=allEx?getPR(allEx,data.sessions):null;
-          const cur=allEx?getWeight(allEx,data.sessions):null;
+          const lifts=sinceReset(data);
+          const pr=allEx?getPR(allEx,lifts):null;
+          const last=allEx?lastWeight(allEx,lifts):null;
+          const next=allEx?getWeight(allEx,lifts):null;
           const startKg=allEx?.kg||0;
           const pct=pr&&startKg?Math.min(100,((pr-startKg)/startKg)*100):0;
           return(<div key={ex.id} style={{display:"flex",alignItems:"center",gap:12,padding:"7px 0"}}>
@@ -795,7 +815,8 @@ function Progress(){
               <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:2}}/>
             </div>
             <span className="mono" style={{fontSize:13,color:P.roseDark,minWidth:52,textAlign:"right",flexShrink:0}}>
-              {cur&&cur!=="BW"?`${cur} kg`:cur||"—"}
+              {last!=null?fmtLoad(last,unitOf(allEx)):"—"}
+              {next!=null&&next!==last&&<span style={{display:"block",fontSize:9,color:P.roseMid,fontFamily:"'DM Sans'",marginTop:2}}>next {fmtLoad(next,unitOf(allEx))}</span>}
             </span>
           </div>);
         })}
@@ -903,7 +924,7 @@ function ChartPanel({close}){
   const[metric,setMetric]=useState("weight");
   const entries=data.bodyLog.filter(e=>metric==="weight"?e.weight!=null:metric==="waist"?e.waist!=null:e.bodyFat!=null);
   const vals=entries.map(e=>metric==="weight"?e.weight:metric==="waist"?e.waist:e.bodyFat);
-  const goal=metric==="weight"?(data.profile.goalWeight??45):metric==="waist"?(data.profile.goalWaist??63):20;
+  const goal=metric==="weight"?(data.profile.goalWeight??45):metric==="waist"?(data.profile.goalWaist??63):(data.profile.goalBodyFat??20);
   const unit=metric==="weight"?"kg":metric==="waist"?"cm":"%";
   const safeVals=vals.length>0?vals:[goal];
   const minV=Math.min(...safeVals,goal)-1;
@@ -1128,8 +1149,8 @@ function ProgressModal(){
       const ex=allExercises.find(e=>e.id===id);
       if(!ex||ex.bw)return null;
       // All sessions where this exercise was actually logged with a weight
-      const logged=data.sessions
-        .filter(s=>s.weights&&s.weights[id]!=null)
+      const logged=sinceReset(data)
+        .filter(s=>performed(s,id))
         .sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
       if(!logged.length)return null;
       const startKg=ex.kg; // hardcoded programme start
@@ -1142,7 +1163,7 @@ function ProgressModal(){
       const stuck=last3.length>=3&&last3.every(w=>w===last3[0]);
       // Progress bar: gain relative to 10kg potential ceiling (arbitrary but visible)
       const barPct=Math.min(100,Math.max(0,(gain/(ex.step*10||10))*100));
-      return{ex,startKg,firstLogged,lastLogged,gain,sessionCount,stuck,barPct};
+      return{ex,startKg,firstLogged,lastLogged,gain,sessionCount,stuck,barPct,u:unitOf(ex)};
     };
 
     const hasAnyData=goalGroups.some(g=>g.ids.some(id=>getExData(id)!==null));
@@ -1174,7 +1195,7 @@ function ProgressModal(){
             </div>
             <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic",marginBottom:10,paddingLeft:11}}>{g.goalLine}</p>
 
-            {rows.map(({ex,startKg,lastLogged,gain,sessionCount,stuck,barPct})=>(
+            {rows.map(({ex,startKg,lastLogged,gain,sessionCount,stuck,barPct,u})=>(
               <div key={ex.id} style={{marginBottom:12,paddingBottom:12,borderBottom:`1px solid ${P.roseLite}`}}>
 
                 {/* Exercise name + session count */}
@@ -1186,7 +1207,7 @@ function ProgressModal(){
                 {/* Start → Now journey */}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                   <div style={{textAlign:"center",flexShrink:0}}>
-                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:13,color:P.roseMid,lineHeight:1}}>{startKg} kg</p>
+                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:13,color:P.roseMid,lineHeight:1}}>{fmtLoad(startKg,u)}</p>
                     <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>start</p>
                   </div>
                   <div style={{flex:1,position:"relative"}}>
@@ -1195,11 +1216,11 @@ function ProgressModal(){
                       <div style={{height:"100%",width:`${barPct}%`,background:`linear-gradient(to right,${g.col}88,${g.col})`,borderRadius:3,transition:"width 0.5s ease"}}/>
                     </div>
                     {/* gain label on bar */}
-                    {gain>0&&<p style={{fontSize:8,color:g.col,fontWeight:600,textAlign:"center",marginTop:2}}>+{gain} kg</p>}
+                    {gain>0&&<p style={{fontSize:8,color:g.col,fontWeight:600,textAlign:"center",marginTop:2}}>+{gain} {u==="level"?(gain===1?"level":"levels"):u}</p>}
                     {gain===0&&<p style={{fontSize:8,color:P.roseMid,textAlign:"center",marginTop:2}}>starting out</p>}
                   </div>
                   <div style={{textAlign:"center",flexShrink:0}}>
-                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:16,color:g.col,fontWeight:600,lineHeight:1}}>{lastLogged} kg</p>
+                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:16,color:g.col,fontWeight:600,lineHeight:1}}>{fmtLoad(lastLogged,u)}</p>
                     <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>now</p>
                   </div>
                 </div>
@@ -1277,8 +1298,8 @@ function GoalModal(){
   const[af,setAf]=useState(null);
   const inputRef=useRef(null);
   useEffect(()=>{if(inputRef.current)inputRef.current.focus();},[af]);
-  const canSaveGoals=!!(gw&&parseFloat(gw)>0&&gs&&parseFloat(gs)>0);
-  const save=()=>{if(!canSaveGoals)return;persist({...data,profile:{...profile,goalWeight:parseFloat(gw),goalWaist:parseFloat(gs),...(gbf&&{goalBodyFat:parseFloat(gbf)})}});setMeModal(null);};
+  const canSaveGoals=!!(gw&&parseFloat(gw)>0&&gs&&parseFloat(gs)>0&&gbf&&parseFloat(gbf)>0);
+  const save=()=>{if(!canSaveGoals)return;persist({...data,profile:{...profile,goalWeight:parseFloat(gw),goalWaist:parseFloat(gs),goalBodyFat:parseFloat(gbf)}});setMeModal(null);};
   return(<div className="mo" onClick={()=>setMeModal(null)}><div className="ms sl" onClick={e=>e.stopPropagation()}>
     <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
@@ -1308,7 +1329,7 @@ function ResetModal(){
   <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center"}}><IcRefresh c={P.roseDark} s={20}/></div></div>
   <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Reset weights?</h3>
   <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>Resets all exercise weights to starting values. Session history, body stats and milestones are kept.</p>
-  <button onClick={()=>{persist({...data,sessions:data.sessions.map(s=>({...s,weights:{},comp:{}}))});setMeModal(null);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESET WEIGHTS</button>
+  <button onClick={()=>{persist({...data,weightsResetAt:new Date().toISOString()});setMeModal(null);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESET WEIGHTS</button>
   <button onClick={()=>setMeModal(null)} className="btnG" style={{width:"100%"}}>CANCEL</button>
 </div></div>);
 }
@@ -1323,7 +1344,7 @@ function ClearModal(){
     <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{step===1?"Permanently deletes all sessions, body logs and progress. Cannot be undone.":"This is your final confirmation. Everything will be erased."}</p>
     {step===1
       ?<button onClick={()=>setStep(2)} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>I UNDERSTAND — CLEAR DATA</button>
-      :<button onClick={()=>{persist({sessions:[],bodyLog:[],profile:{...DEFAULT_PROFILE},nutritionLog:[]});setMeModal(null);}} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, DELETE EVERYTHING</button>}
+      :<button onClick={()=>{persist({sessions:[],bodyLog:[],profile:{...DEFAULT_PROFILE},nutritionLog:[],schema:4});setMeModal(null);}} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, DELETE EVERYTHING</button>}
     <button onClick={()=>setMeModal(null)} className="btnG" style={{width:"100%"}}>CANCEL</button>
   </div></div>);
 }
@@ -1499,12 +1520,11 @@ function PlanModal(){
       {/* Exercise list */}
       <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:16}}>
         {pl.exercises.map((ex,i)=>{
-          const cw=getWeight(ex,data.sessions,pl.id);
-          const pr=getPR(ex,data.sessions);
-          const isUp=!ex.bw&&typeof cw==="number"&&(!pr||cw>pr);
-          const exLastDone=data.sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined).slice(-1)[0];
-          const exDaysSince=exLastDone?Math.floor((Date.now()-new Date(exLastDone.date))/86400000):0;
-          const isDown=exDaysSince>14&&!ex.bw&&typeof cw==="number";
+          const lifts=sinceReset(data);
+          const cw=getWeight(ex,lifts,pl.id);
+          const lastW=ex.bw?null:lastWeight(ex,lifts,pl.id);
+          const isUp=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw>lastW;
+          const isDown=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw<lastW;
           return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:10}}>
             <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
             <div style={{flex:1,minWidth:0}}>
@@ -1513,7 +1533,7 @@ function PlanModal(){
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
-              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":`${cw} ${ex.unit||"kg"}`}{isUp?" ↑":isDown?" ↓":""}</p>
+              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":fmtLoad(cw,unitOf(ex))}{isUp?" ↑":isDown?" ↓":""}</p>
             </div>
           </div>);
         })}
@@ -1599,12 +1619,18 @@ export default function App(){
     const end=now-last>30*60000?last+5*60000:now;
     const duration=s.startedAt?Math.max(0,Math.floor((end-s.startedAt)/1000)):0;
     const cal=kcal(pl.met,Math.max(1,Math.round(duration/60)));
+    const swapped=s.swapped||{};
+    const done=s.csets||{};
+    // Only real lifts are saved: at least one set done, not swapped
     const numericWeights={};
     pl.exercises.forEach(ex=>{
-      if(!ex.bw){const used=s.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
+      if(ex.bw||swapped[ex.id]||!(done[ex.id]>0))return;
+      const used=s.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;
     });
-    const prs=pl.exercises.filter(ex=>!ex.bw&&numericWeights[ex.id]).filter(ex=>{const pr=getPR(ex,history);return!pr||numericWeights[ex.id]>pr;}).map(ex=>ex.name);
-    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:s.csets||{},swapped:s.swapped||{}};
+    const lifts=sinceReset({sessions:history,weightsResetAt:data.weightsResetAt});
+    const prs=pl.exercises.filter(ex=>numericWeights[ex.id]!=null).filter(ex=>{const pr=getPR(ex,lifts);return pr!=null&&numericWeights[ex.id]>pr;}).map(ex=>ex.name);
+    const skipped=pl.exercises.filter(ex=>s.skipped&&s.skipped[ex.id]&&!(done[ex.id]>0)).map(ex=>ex.id);
+    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:{...done},swapped,...(skipped.length?{skipped}:{})};
     return{rec,prs};
   };
 
@@ -1615,7 +1641,8 @@ export default function App(){
       persist({...data,sessions:history});setStaleLive(null);
     }
     const initWeights={};
-    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,history,pl.id);});
+    const lifts=sinceReset({sessions:history,weightsResetAt:data.weightsResetAt});
+    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,lifts,pl.id);});
     const now=Date.now();
     finishingRef.current=false;
     setActive(pl);
@@ -1637,21 +1664,55 @@ export default function App(){
       // Use the weight Lynn has set (pre-populated or manually adjusted) — never recalculate mid-session
       const weights={...prev.weights};
       if(!ex.bw&&weights[ex.id]==null){
-        weights[ex.id]=getWeight(ex,data.sessions,active?.id);
+        weights[ex.id]=getWeight(ex,sinceReset(data),active?.id);
       }
       const csets={...prev.csets,[ex.id]:cnt};
       prev={...prev,lastActionAt:Date.now()};
       const allDone=cnt>=ex.sets;
       if(ex.rest>0&&!allDone)return{...prev,comp,weights,csets,phase:"rest",nextSet:si+1,nextExIdx:ei,restEndsAt:Date.now()+ex.rest*1000,restTotal:ex.rest};
       if(allDone){
-        const nextEx=ei+1;
-        if(nextEx<active.exercises.length){
-          if(ex.rest>0)return{...prev,comp,weights,csets,phase:"rest",nextSet:0,nextExIdx:nextEx,restEndsAt:Date.now()+ex.rest*1000,restTotal:ex.rest};
-          return{...prev,comp,weights,csets,phase:"active",currentSet:0,currentExIdx:nextEx};
+        // next exercise with sets left that wasn't skipped (forward first, then earlier ones)
+        const exs=active.exercises,sk=prev.skipped||{};
+        const open=i=>(csets[exs[i].id]||0)<exs[i].sets&&!sk[exs[i].id];
+        let nextEx=-1;
+        for(let i=ei+1;i<exs.length&&nextEx<0;i++)if(open(i))nextEx=i;
+        for(let i=0;i<ei&&nextEx<0;i++)if(open(i))nextEx=i;
+        if(nextEx>=0){
+          const ns=csets[exs[nextEx].id]||0;
+          if(ex.rest>0)return{...prev,comp,weights,csets,phase:"rest",nextSet:ns,nextExIdx:nextEx,restEndsAt:Date.now()+ex.rest*1000,restTotal:ex.rest};
+          return{...prev,comp,weights,csets,phase:"active",currentSet:ns,currentExIdx:nextEx};
         }
         return{...prev,comp,weights,csets,phase:"done"};
       }
       return{...prev,comp,weights,csets};
+    });
+  };
+
+  // Skip an exercise (equipment busy): move on, save nothing for it
+  const skipExercise=id=>{
+    setSess(prev=>{
+      if(!prev||!active)return prev;
+      const exs=active.exercises,ei=exs.findIndex(e=>e.id===id);
+      if(ei<0)return prev;
+      const doneOf=x=>prev.csets?.[x]||0;
+      const skipped={...(prev.skipped||{})};
+      if(doneOf(id)===0)skipped[id]=true;
+      const open=i=>doneOf(exs[i].id)<exs[i].sets&&!skipped[exs[i].id];
+      let next=-1;
+      for(let i=ei+1;i<exs.length&&next<0;i++)if(open(i))next=i;
+      for(let i=0;i<ei&&next<0;i++)if(open(i))next=i;
+      const base={...prev,skipped,lastActionAt:Date.now(),restEndsAt:null};
+      if(next<0)return{...base,phase:"done"};
+      return{...base,phase:"active",currentExIdx:next,currentSet:doneOf(exs[next].id)};
+    });
+  };
+  // Jump to an exercise from the progress dots (un-skips it)
+  const jumpTo=i=>{
+    setSess(prev=>{
+      if(!prev||!active||!active.exercises[i])return prev;
+      const ex=active.exercises[i];
+      const skipped={...(prev.skipped||{})};delete skipped[ex.id];
+      return{...prev,skipped,phase:"active",currentExIdx:i,currentSet:Math.min(prev.csets?.[ex.id]||0,ex.sets),restEndsAt:null,lastActionAt:Date.now()};
     });
   };
 
@@ -1698,7 +1759,7 @@ export default function App(){
   const weekAgo=Date.now()-7*86400000;
   const thisWeekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
 
-  const ctx={tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,requestFinish,requestLeave,clearWorkout,workoutSheet,setWorkoutSheet,staleLive,finishStale,discardStale,totSets,doneSets,thisWeekSess};
+  const ctx={tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,requestFinish,requestLeave,clearWorkout,skipExercise,jumpTo,workoutSheet,setWorkoutSheet,staleLive,finishStale,discardStale,totSets,doneSets,thisWeekSess};
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return(<AppCtx.Provider value={ctx}>

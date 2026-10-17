@@ -1,30 +1,49 @@
 import { SESSIONS } from "./programme";
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
+// Units: kg (default), "level" (Stairmaster), "km/h" (Incline Walk)
+export const unitOf=ex=>ex.unit||"kg";
+export function roundLoad(v,unit="kg"){return unit==="level"?Math.round(v):unit==="km/h"?Math.round(v*2)/2:Math.round(v*4)/4;}
+export function fmtLoad(v,unit="kg"){if(v==null||v==="")return"—";if(v==="BW")return"BW";return unit==="level"?`Level ${v}`:unit==="km/h"?`${v} km/h`:`${v} kg`;}
+
+// An exercise counts only when at least one set was done and it wasn't swapped for something else
+export const performed=(s,id)=>(Number(s.comp?.[id])||0)>0&&!(s.swapped&&s.swapped[id])&&s.weights&&s.weights[id]!=null;
+// "Reset weights" starts strength tracking over from that day; earlier sessions stay in the history
+export const sinceReset=data=>data.weightsResetAt?data.sessions.filter(s=>new Date(s.date).getTime()>new Date(data.weightsResetAt).getTime()):data.sessions;
+
+// ── ENGINES ───────────────────────────────────────────────────────────────────
+// Next weight for an exercise (pass sinceReset(data) as sessions):
+// 1 history = same session type, sets done, not swapped · 2 none → programme start
+// 3 last done 14+ days ago → 10 % lower (kg only) · 4 step up once the last `freq` sessions
+//   AT THE CURRENT WEIGHT were all complete and span 7+ days (no span rule when freq is 1)
 export function getWeight(ex,sessions,sessionId=null){
   if(ex.bw)return"BW";
-  // Only sessions that include this exercise AND match the session type
-  const hist=sessions.filter(s=>s.weights&&s.weights[ex.id]!==undefined&&(!sessionId||s.sessionId===sessionId));
+  const unit=unitOf(ex);
+  const hist=sessions.filter(s=>performed(s,ex.id)&&(!sessionId||s.sessionId===sessionId));
   if(!hist.length)return ex.kg;
   const last=hist[hist.length-1];
   const w=last.weights[ex.id];
-  // daysSince is per-exercise — days since the last time THIS exercise was done
-  const daysSince=Math.floor((Date.now()-new Date(last.date))/86400000);
-  // Overload reset: 2+ week break → reduce 10%
-  if(daysSince>14)return Math.round((w*0.9)*4)/4;
+  const daysSince=Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
+  if(daysSince>14)return unit==="kg"?roundLoad(w*0.9,unit):w;
   if(!ex.step||!ex.freq)return w;
-  const recent=hist.slice(-ex.freq);
-  // TIME GATE: all freq sessions must have happened AND span at least 7 days
+  const atW=[];
+  for(let i=hist.length-1;i>=0&&hist[i].weights[ex.id]===w;i--)atW.unshift(hist[i]);
+  const recent=atW.slice(-ex.freq);
   if(recent.length<ex.freq)return w;
-  const spanDays=(new Date(recent[recent.length-1].date)-new Date(recent[0].date))/86400000;
-  const minSpan=ex.freq>1?7:0;
-  if(spanDays<minSpan)return w;
-  const allDone=recent.every(s=>s.comp&&(s.comp[ex.id]||0)>=ex.sets);
-  return allDone?Math.round((w+ex.step)*4)/4:w;
+  const spanDays=(new Date(recent[recent.length-1].date).getTime()-new Date(recent[0].date).getTime())/86400000;
+  if(ex.freq>1&&spanDays<7)return w;
+  const allDone=recent.every(s=>(Number(s.comp?.[ex.id])||0)>=ex.sets);
+  return allDone?roundLoad(w+ex.step,unit):w;
 }
+// Highest weight actually lifted (sets done, not swapped)
 export function getPR(ex,sessions){
-  const vals=sessions.filter(s=>s.weights&&s.weights[ex.id]!=null).map(s=>s.weights[ex.id]);
+  const vals=sessions.filter(s=>performed(s,ex.id)).map(s=>s.weights[ex.id]);
   return vals.length?Math.max(...vals):null;
+}
+// Last weight actually lifted, or null
+export function lastWeight(ex,sessions,sessionId=null){
+  const hist=sessions.filter(s=>performed(s,ex.id)&&(!sessionId||s.sessionId===sessionId));
+  return hist.length?hist[hist.length-1].weights[ex.id]:null;
 }
 export function kcal(met,mins,wt=50){return Math.round(met*wt*(mins/60));}
 export function getGreeting(){const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
@@ -128,14 +147,14 @@ export function getMilestones(sessions,bodyLog,profile={}){
     if(first&&e.weight<first.weight-0.9&&!ms.find(m=>m.id==="w1"))ms.push({id:"w1",icon:"weight",title:"First kilogram gone",sub:`${first.weight} → ${e.weight} kg — the first one is the hardest.`});
     if(first&&e.waist&&first.waist&&e.waist<first.waist-0.9&&!ms.find(m=>m.id==="ws1"))ms.push({id:"ws1",icon:"waist",title:"First centimetre off the waist",sub:`${first.waist} → ${e.waist} cm — the core work is showing.`});
     if(first&&e.weight!=null&&e.weight<=(profile?.goalWeight??45)&&!ms.find(m=>m.id==="goalW"))ms.push({id:"goalW",icon:"trophy",title:`Goal weight reached — ${e.weight} kg`,sub:"You hit your target. Now set a new one and keep going."});
-    if(first&&e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:"63 cm. You earned it. There's always a next level."});
-    const bfGoal=profile?.goalBodyFat??23;
+    if(first&&e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:`${profile?.goalWaist??63} cm. You earned it. There's always a next level.`});
+    const bfGoal=profile?.goalBodyFat??20;
     if(e.bodyFat&&e.bodyFat<=bfGoal&&!ms.find(m=>m.id==="bf23"))ms.push({id:"bf23",icon:"fire",title:`Under ${bfGoal}% body fat`,sub:"Visible toning territory. You're in it."});
   });
   const allExIds=SESSIONS.flatMap(s=>s.exercises.map(e=>e.id));
   allExIds.forEach(id=>{
-    const pr=sessions.filter(s=>s.weights&&s.weights[id]!=null);
-    if(pr.length>1){const ex=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===id);if(ex&&!ex.bw&&!ms.find(m=>m.id==="pr_"+id)){const maxW=Math.max(...pr.map(s=>s.weights[id]));const startW=pr[0].weights[id];if(maxW>startW+4)ms.push({id:"pr_"+id,icon:"trophy",title:`${ex.name} PR`,sub:`${startW} → ${maxW} kg — up ${(maxW-startW).toFixed(1)} kg from start.`});}}
+    const pr=sessions.filter(s=>performed(s,id));
+    if(pr.length>1){const ex=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===id);if(ex&&!ex.bw&&!ms.find(m=>m.id==="pr_"+id)){const u=unitOf(ex);const maxW=Math.max(...pr.map(s=>s.weights[id]));const startW=pr[0].weights[id];if(maxW>startW+4)ms.push({id:"pr_"+id,icon:"trophy",title:`${ex.name} PR`,sub:`${u==="kg"?`${startW} → ${maxW} kg`:`${fmtLoad(startW,u)} → ${fmtLoad(maxW,u)}`} — up ${u==="level"?`${maxW-startW} levels`:`${(maxW-startW).toFixed(1)} ${u}`} from start.`});}}
   });
   if(sessions.length>=10)ms.push({id:"s10",icon:"sessions",title:"10 sessions complete",sub:"You showed up 10 times. That's the whole game."});
   if(sessions.length>=25)ms.push({id:"s25",icon:"sessions",title:"25 sessions complete",sub:"25 sessions. You're not trying it anymore — you're doing it."});
