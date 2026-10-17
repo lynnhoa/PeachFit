@@ -41,7 +41,7 @@ export const SESSIONS=[
      tip:"Most underrated waist exercise. Consistent practice = measurably smaller waist.",cue:"Exhale fully. Suck navel to spine as hard as possible. Hold.",start:"Stand or kneel. Deep breath in, then exhale completely.",dont:"Don't hold your breath entirely — breathe shallowly while holding.",
      swaps:[{name:"Stomach Vacuum on All Fours",note:"Gravity helps — easier to feel it"},{name:"Diaphragmatic Breathing",note:"Deep belly breathing, TVA activation"},{name:"Plank with Exhale Hold",note:"Plank position, exhale and brace"}]},
   ]},
-  {id:"shape",name:"Glutes + Core",tag:"SHAPE",color:P.accent,duration:50,met:4.2,
+  {id:"shape",name:"Glutes + Core",tag:"GLUTES + CORE",color:P.accent,duration:50,met:4.2,
    exercises:[
     {id:"sm",name:"Smith Machine Hip Thrust",muscle:"Glutes Max",sets:4,reps:"12",kg:25,step:2.5,freq:2,bw:false,rest:90,anim:"ht",
      tip:"Smith machine lets you go heavier safely — really load those glutes today.",cue:"Full extension. 2-second squeeze at top every single rep.",start:"Upper back on bench, bar on hip crease padded, feet flat.",dont:"Don't trade weight for form. Full range every rep.",

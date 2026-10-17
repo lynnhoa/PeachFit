@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
-import { FONT, P } from "./theme";
+import { P } from "./theme";
 import { SESSIONS } from "./programme";
 import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
@@ -62,7 +62,6 @@ const A={
 
 // ── CSS ───────────────────────────────────────────────────────────────────────
 const CSS=`
-@import url('${FONT}');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;background:${P.white};}
 ::-webkit-scrollbar{width:0;}
@@ -78,8 +77,8 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 .btnP{background:${P.roseDark};color:white;border:none;border-radius:40px;padding:14px 28px;font-size:13px;font-weight:500;letter-spacing:0.08em;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;transition:opacity 0.15s;-webkit-appearance:none;}
 .btnP:active{opacity:0.82;}
 .btnG{background:none;border:1.5px solid ${P.rosePrimary};color:${P.roseDark};border-radius:40px;padding:9px 18px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-appearance:none;}
-.nav{flex-shrink:0;background:white;border-top:1px solid ${P.roseLite};display:flex;flex-direction:column;z-index:100;padding-bottom:min(env(safe-area-inset-bottom,0px),8px);}
-.nav-icons{display:flex;align-items:flex-start;justify-content:space-around;height:48px;width:100%;padding:10px 4px 0;}
+.nav{flex-shrink:0;background:white;border-top:1px solid ${P.roseLite};display:flex;flex-direction:column;z-index:100;padding-bottom:max(6px,min(env(safe-area-inset-bottom,0px),8px));}
+.nav-icons{display:flex;align-items:flex-start;justify-content:space-around;min-height:48px;width:100%;padding:8px 4px 0;}
 .nav-safe{display:none;}
 .nb{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:0 10px;font-family:'DM Sans',sans-serif;-webkit-appearance:none;}
 .mo{position:fixed;inset:0;background:rgba(61,32,40,0.65);z-index:200;display:flex;align-items:flex-end;backdrop-filter:blur(6px);}
@@ -94,6 +93,25 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 `;
 
 // ── APP ───────────────────────────────────────────────────────────────────────
+
+// ── SOUND — soft chime when a rest or a timed move ends (iPhone: only while the app is open) ──
+let audioCtx=null;
+const unlockAudio=()=>{try{const AC=window.AudioContext||(window as any).webkitAudioContext;if(!AC)return;if(!audioCtx)audioCtx=new AC();if(audioCtx.state==="suspended")audioCtx.resume();}catch{}};
+const chime=()=>{
+  try{if(navigator.vibrate)navigator.vibrate([120,80,120]);}catch{}
+  try{
+    if(!audioCtx||audioCtx.state!=="running")return;
+    const t=audioCtx.currentTime;
+    [[880,0],[1318.5,0.16]].forEach(([f,d])=>{
+      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+      o.type="sine";o.frequency.value=f;
+      g.gain.setValueAtTime(0.0001,t+d);g.gain.exponentialRampToValueAtTime(0.18,t+d+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+d+0.35);
+      o.connect(g);g.connect(audioCtx.destination);o.start(t+d);o.stop(t+d+0.4);
+    });
+  }catch{}
+};
+// "15 min" / "30 sec" → seconds; other rep schemes → null
+const timedSecs=reps=>{const m=String(reps).match(/(\d+)\s*(min|sec)\b/);return m?Number(m[1])*(m[2]==="min"?60:1):null;};
 
 // ── APP CONTEXT — screens and sheets read shared state and actions from here ──
 const AppCtx=createContext(null);
@@ -177,36 +195,34 @@ function Today(){
         </div>
       )}
 
-      {/* Session cards */}
-      <div style={{flex:"1 0 auto",display:"flex",flexDirection:"column",gap:10}}>
+      {/* Session cards — one layout, only the values change */}
+      <div style={{display:"flex",flexDirection:"column",gap:10,flexShrink:0}}>
         {SESSIONS.map(pl=>{
           const SIcon=SessIcon[pl.id];
           const isSuggested=pl.id===suggested.id;
           const doneThisWeek=weekCounts[pl.id]||0;
           const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
-          const daysSinceLast=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):null;
-          return(<div key={pl.id} onClick={()=>setPlanModal(pl)} style={{flex:1,background:`linear-gradient(135deg,${pl.color}28,${pl.color}12)`,border:`1.5px solid ${isSuggested?pl.color:pl.color+"33"}`,borderRadius:14,padding:"12px 16px",boxShadow:isSuggested?`0 3px 14px ${pl.color}30`:"0 2px 12px rgba(212,120,138,0.06)",cursor:"pointer",display:"flex",flexDirection:"column",justifyContent:"center"}}>
-            {isSuggested&&<span style={{background:pl.color,color:"white",fontSize:7,letterSpacing:"0.15em",textTransform:"uppercase",padding:"2px 8px",borderRadius:20,display:"inline-block",marginBottom:8,fontFamily:"'DM Sans'",fontWeight:500}}>Suggested today</span>}
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{display:"flex",alignItems:"center",gap:12,flex:1}}>
-                <div style={{width:36,height:36,borderRadius:10,background:`${pl.color}22`,border:`1px solid ${pl.color}44`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                  <SIcon c={pl.color} s={18}/>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <h2 className="serif" style={{fontSize:16,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
-                  <p style={{fontSize:10,color:P.roseMid,marginTop:2}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
-                  {daysSinceLast!==null&&<p style={{fontSize:9,color:pl.color,marginTop:2,fontWeight:500}}>{daysSinceLast===0?"Done today":daysSinceLast===1?"Done yesterday":`${daysSinceLast}d ago`}{doneThisWeek>0?` · ${doneThisWeek}× this week`:""}</p>}
-                </div>
-              </div>
-              <button onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:32,height:32,borderRadius:"50%",background:pl.color,border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:`0 2px 8px ${pl.color}55`,flexShrink:0,marginLeft:10}}>
-                <IcPlay c="white" s={12}/>
-              </button>
+          const d=lastDone?Math.floor((Date.now()-new Date(lastDone.date).getTime())/86400000):null;
+          const status=isSuggested
+            ?`Suggested today${d===null?"":d===0?" · done today":d===1?" · done yesterday":` · last ${d} d ago`}`
+            :`${d===null?"Not done yet":d===0?"Done today":d===1?"Done yesterday":`${d} d ago`}${doneThisWeek>0?` · ${doneThisWeek}× this week`:""}`;
+          return(<div key={pl.id} onClick={()=>setPlanModal(pl)} style={{background:P.white,border:`1.5px solid ${isSuggested?P.roseDark:P.roseLite}`,borderRadius:14,padding:"14px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:44,height:44,borderRadius:12,background:`${pl.color}22`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <SIcon c={pl.color} s={22}/>
             </div>
+            <div style={{flex:1,minWidth:0}}>
+              <h2 className="serif" style={{fontSize:17,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
+              <p style={{fontSize:11,color:P.roseMid,marginTop:3}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+              <p style={{fontSize:11,color:isSuggested?P.roseDark:P.roseMid,marginTop:3,fontWeight:500}}>{status}</p>
+            </div>
+            <button aria-label={`Start ${pl.name}`} onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:40,height:40,borderRadius:"50%",background:isSuggested?P.roseDark:P.white,border:isSuggested?"none":`1.5px solid ${P.roseHero}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
+              <span style={{display:"flex",marginLeft:2}}><IcPlay c={isSuggested?"white":P.roseDark} s={14}/></span>
+            </button>
           </div>);
         })}
       </div>
 
-      {/* Protein */}
+            {/* Protein */}
       <div style={{flexShrink:0}}>
         {(!todayProtein||editProtein)&&(()=>{
           const currWt=latest(data.bodyLog,"weight");
@@ -387,6 +403,7 @@ function Workout(){
         )}
         <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:6,letterSpacing:"0.06em",visibility:ex.bw||swappedTo?"hidden":"visible"}}>tap − + to adjust</p>
         <p className="mono" style={{fontSize:14,color:P.rosePrimary}}>{ex.sets} sets × {ex.reps}</p>
+        {timedSecs(ex.reps)&&setsCompletedForEx<ex.sets&&<MoveTimer key={`${ex.id}-${currentSet}`} secs={timedSecs(ex.reps)}/>}
       </div>
       {/* Set tracker */}
       <div style={{textAlign:"center",marginBottom:14}}>
@@ -401,7 +418,7 @@ function Workout(){
       {/* CTA — unified wrapper div keeps button zone fixed height so secondary row never jumps */}
       <div style={{marginBottom:10,height:52,flexShrink:0}}>
         {setsCompletedForEx<ex.sets?(
-          <button onClick={()=>completeCurrentSet(ex,ei)} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <button onClick={()=>{unlockAudio();completeCurrentSet(ex,ei);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:14,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
             <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
           </button>
         ):(
@@ -437,7 +454,7 @@ function RestRing(){
   const[rest,setRest]=useState(left);
   const done=useRef(false);
   useEffect(()=>{
-    const tick=()=>{const r=left();setRest(r);if(r===0&&!done.current){done.current=true;advanceAfterRest(false);}};
+    const tick=()=>{const r=left();setRest(r);if(r===0&&!done.current){done.current=true;if(Date.now()-(startedAt+total*1000)<3000)chime();advanceAfterRest(false);}};
     tick();
     const id=setInterval(tick,250);
     return()=>clearInterval(id);
@@ -453,6 +470,26 @@ function RestRing(){
       <span style={{fontSize:10,color:P.roseMid,marginTop:1}}>sec</span>
     </div>
   </div>);
+}
+
+// Countdown for timed moves (cardio minutes, holds in seconds): tap to start, tap again to pause
+function MoveTimer({secs}){
+  const[endsAt,setEndsAt]=useState(null);
+  const[left,setLeft]=useState(secs);
+  const fired=useRef(false);
+  useEffect(()=>{
+    if(!endsAt)return;
+    const tick=()=>{const r=Math.max(0,Math.ceil((endsAt-Date.now())/1000));setLeft(r);if(r===0){setEndsAt(null);if(!fired.current){fired.current=true;chime();}}};
+    tick();const id=setInterval(tick,250);return()=>clearInterval(id);
+  },[endsAt]);
+  const running=!!endsAt,over=left===0;
+  const mmss=`${Math.floor(left/60)}:${String(left%60).padStart(2,"0")}`;
+  const tap=()=>{unlockAudio();if(over){fired.current=false;setLeft(secs);return;}if(running)setEndsAt(null);else setEndsAt(Date.now()+left*1000);};
+  return(<button onClick={tap} style={{marginTop:10,background:running?"rgba(242,160,176,0.14)":"none",border:`1.5px solid rgba(242,160,176,${running?0.5:0.3})`,color:P.roseHero,borderRadius:40,padding:"7px 16px",cursor:"pointer",fontFamily:"'DM Sans'",display:"inline-flex",alignItems:"center",gap:8}}>
+    <IcClock c={P.roseHero} s={13}/>
+    <span className="mono" style={{fontVariantNumeric:"tabular-nums",fontSize:14}}>{mmss}</span>
+    <span style={{fontSize:11,color:P.roseMid}}>{over?"Time's up · reset":running?"Pause":left<secs?"Resume":"Start"}</span>
+  </button>);
 }
 
 // Workout time + kcal — computed from the start time, so it survives a locked phone and never flashes 00:00
@@ -742,7 +779,7 @@ function Progress(){
       {/* PANEL 2 — This week + Rhythm */}
       {(()=>{
         const fourWeeksAgo=Date.now()-28*86400000;
-        const sessTypes=[["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Shape",IcShape,P.accent]] as [string,string,any,string][];
+        const sessTypes=[["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Glutes + Core",IcShape,P.accent]] as [string,string,any,string][];
         const daysSinceLast=(id:string)=>{
           const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
           if(!last)return null;
@@ -1020,7 +1057,7 @@ function ProgressModal(){
     const sessTypes=[
       {id:"glutes",label:"Glutes",Ic:IcGlutes,col:P.rosePrimary},
       {id:"core",   label:"Core",  Ic:IcCore,  col:P.roseDark},
-      {id:"shape",  label:"Shape", Ic:IcShape, col:P.accent},
+      {id:"shape",  label:"Glutes + Core", Ic:IcShape, col:P.accent},
     ];
     const daysSinceLast=(id:string):number|null=>{
       const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
@@ -1032,19 +1069,21 @@ function ProgressModal(){
     // heatmap — 4 weeks × 7 days, typed explicitly to avoid index errors
     type HCell={id:"glutes"|"core"|"shape"}|null;
     const hmap:HCell[][]=[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]];
-    sess28.forEach(s=>{
+    const monday=t=>{const x=new Date(t);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime();};
+    const thisMonday=monday(Date.now());
+    const todayDow=(new Date().getDay()+6)%7;
+    data.sessions.forEach(s=>{
       const sid=s.sessionId as string;
       if(sid!=="glutes"&&sid!=="core"&&sid!=="shape")return;
-      const daysAgo=Math.floor((Date.now()-new Date(s.date).getTime())/86400000);
-      const wk=3-Math.floor(daysAgo/7);
+      const wk=3-Math.round((thisMonday-monday(s.date))/(7*86400000));
       if(wk<0||wk>3)return;
       const dow=(new Date(s.date).getDay()+6)%7;
       if(!hmap[wk][dow])hmap[wk][dow]={id:sid as "glutes"|"core"|"shape"};
     });
 
     const cellBg:Record<"glutes"|"core"|"shape",string>={glutes:P.rosePrimary,core:P.roseDark,shape:P.accent};
-    const cellTxt:Record<"glutes"|"core"|"shape",string>={glutes:"G",core:"C",shape:"S"};
-    const wkLabel=["4 wk ago","3 wk ago","2 wk ago","This wk"];
+    const cellTxt:Record<"glutes"|"core"|"shape",string>={glutes:"G",core:"C",shape:"G+C"};
+    const wkLabel=["3 wk ago","2 wk ago","Last wk","This wk"];
 
     const counts28={
       glutes:sess28.filter(s=>s.sessionId==="glutes").length,
@@ -1055,7 +1094,7 @@ function ProgressModal(){
     const weekG=localWeekTypes.has("glutes"),weekC=localWeekTypes.has("core"),weekS=localWeekTypes.has("shape");
     const coachWk=weekG&&weekC&&weekS
       ?"All three covered this week — this is exactly the pace that changes your body."
-      :weekG&&weekC?"Glutes and core covered — both goals are being worked. Add Shape for full balance."
+      :weekG&&weekC?"Glutes and core covered — both goals are being worked. Add Glutes + Core for full balance."
       :weekG?"Glutes done. Add core next — waist work needs its own session."
       :weekC?"Core done. Hip thrusts next — glute shape needs consistent loading."
       :"Nothing logged this week yet. One session is enough to start — pick any.";
@@ -1120,8 +1159,8 @@ function ProgressModal(){
               const txtCol="rgba(255,255,255,0.90)";
               return(
                 <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <div style={{width:"100%",paddingBottom:"100%",position:"relative",borderRadius:5,background:bg}}>
-                    <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:txtCol}}>{txt}</span>
+                  <div style={{width:"100%",paddingBottom:"100%",position:"relative",borderRadius:5,background:bg,boxShadow:wi===3&&di===todayDow?`inset 0 0 0 1.5px ${P.roseDark}`:"none",opacity:wi===3&&di>todayDow?0.45:1}}>
+                    <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:cell&&cell.id==="shape"?9:10,fontWeight:700,color:txtCol}}>{txt}</span>
                   </div>
                 </div>
               );
@@ -1133,7 +1172,7 @@ function ProgressModal(){
           {([
             {col:P.rosePrimary+"dd",lbl:"Glutes"},
             {col:P.roseDark+"dd",lbl:"Core"},
-            {col:P.accent+"dd",lbl:"Shape"},
+            {col:P.accent+"dd",lbl:"Glutes + Core"},
             {col:P.roseLite+"99",lbl:"Rest"},
           ] as {col:string,lbl:string}[]).map(({col,lbl})=>(
             <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1495,10 +1534,10 @@ function Me(){
               <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,textAlign:"center",lineHeight:1.3}}>Reset weights</p>
               <p style={{fontSize:11,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>after a long break</p>
             </button>
-            <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#f0f7f4",border:"1px solid #a8d4c2",borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
-              <IcTrash c="#1e6b50" s={16}/>
-              <p style={{fontSize:12,color:"#1e6b50",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
-              <p style={{fontSize:11,color:"#2d9970",textAlign:"center",lineHeight:1.3}}>start fresh</p>
+            <button onClick={()=>setMeModal("clearData")} style={{flex:1,background:"#fff0f2",border:"1px solid #ffc8cd",borderRadius:12,padding:"12px 8px",cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:5}}>
+              <IcTrash c="#c0392b" s={16}/>
+              <p style={{fontSize:12,color:"#c0392b",fontWeight:500,textAlign:"center",lineHeight:1.3}}>Clear all data</p>
+              <p style={{fontSize:11,color:P.roseMid,textAlign:"center",lineHeight:1.3}}>start fresh</p>
             </button>
           </div>
         </div>

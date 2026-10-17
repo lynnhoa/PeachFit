@@ -168,7 +168,7 @@ export function getMilestones(sessions,bodyLog,profile={}){
   if(sessions.length>=10)ms.push({id:"s10",icon:"sessions",title:"10 sessions complete",sub:"You showed up 10 times. That's the whole game."});
   if(sessions.length>=25)ms.push({id:"s25",icon:"sessions",title:"25 sessions complete",sub:"25 sessions. You're not trying it anymore — you're doing it."});
   const types=new Set(sessions.filter(s=>new Date(s.date)>Date.now()-7*86400000).map(s=>s.sessionId));
-  if(types.size===3)ms.push({id:"full3",icon:"star",title:"Full week — all 3 sessions",sub:"Glutes, Core, and Shape all covered in one week. Balanced."});
+  if(types.size===3)ms.push({id:"full3",icon:"star",title:"Full week — all 3 sessions",sub:"Glutes Heavy, Core + Waist, and Glutes + Core all covered in one week. Balanced."});
   return ms.reverse();
 }
 

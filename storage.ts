@@ -4,7 +4,7 @@ import { localDay } from "./engine";
 export const KEY="lynn_gym_v3";
 export const LIVE_KEY="lynn_gym_v3_live";   // the running workout; removed on finish or discard
 export const PRE4_KEY="lynn_gym_v3_pre4";   // untouched copy taken once, before the cleanup below
-export const APP_VERSION="1.5";
+export const APP_VERSION="1.6";
 export const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,goalBodyFat:20};
 export const ld=()=>{
   try{
