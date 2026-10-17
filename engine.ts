@@ -1,6 +1,6 @@
 import { SESSIONS } from "./programme";
 
-// ── ENGINES ───────────────────────────────────────────────────────────────────
+// ── HELPERS ──────────────────────────────────────────────────────────────────
 // Units: kg (default), "level" (Stairmaster), "km/h" (Incline Walk)
 export const unitOf=ex=>ex.unit||"kg";
 export function roundLoad(v,unit="kg"){return unit==="level"?Math.round(v):unit==="km/h"?Math.round(v*2)/2:Math.round(v*4)/4;}
@@ -10,6 +10,13 @@ export function fmtLoad(v,unit="kg"){if(v==null||v==="")return"—";if(v==="BW")
 export const performed=(s,id)=>(Number(s.comp?.[id])||0)>0&&!(s.swapped&&s.swapped[id])&&s.weights&&s.weights[id]!=null;
 // "Reset weights" starts strength tracking over from that day; earlier sessions stay in the history
 export const sinceReset=data=>data.weightsResetAt?data.sessions.filter(s=>new Date(s.date).getTime()>new Date(data.weightsResetAt).getTime()):data.sessions;
+
+// Body log: newest / oldest entry that actually has a value for this field (weight, waist, bodyFat …)
+export const latestEntry=(bodyLog,field)=>{for(let i=(bodyLog||[]).length-1;i>=0;i--)if(bodyLog[i][field]!=null)return bodyLog[i];return null;};
+export const latest=(bodyLog,field)=>{const e=latestEntry(bodyLog,field);return e?e[field]:null;};
+export const earliest=(bodyLog,field)=>{for(const e of bodyLog||[])if(e[field]!=null)return e[field];return null;};
+// Local calendar day "YYYY-MM-DD" (the phone's date, not UTC)
+export const localDay=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
 // Next weight for an exercise (pass sinceReset(data) as sessions):
@@ -49,20 +56,20 @@ export function kcal(met,mins,wt=50){return Math.round(met*wt*(mins/60));}
 export function getGreeting(){const h=new Date().getHours();return h<12?"Good morning":h<18?"Good afternoon":"Good evening";}
 export function getProteinHitRate(nutritionLog){
   const weekAgo=Date.now()-7*86400000;
-  const week=(nutritionLog||[]).filter(e=>new Date(e.date)>weekAgo&&!e.skipped&&e.hit!==null&&e.hit!==undefined);
+  const week=(nutritionLog||[]).filter(e=>new Date(e.date+"T00:00:00").getTime()>weekAgo&&!e.skipped&&e.hit!==null&&e.hit!==undefined);
   if(!week.length)return null;
   const hits=week.filter(e=>e.hit===true).length;
   return{hits,total:week.length,rate:hits/week.length};
 }
 export function getTodayProtein(nutritionLog){
-  const today=new Date().toISOString().slice(0,10);
+  const today=localDay();
   return(nutritionLog||[]).find(e=>e.date===today)||null;
 }
 export function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
-  const last=bodyLog.length?bodyLog[bodyLog.length-1]:null;
   const gw=profile?.goalWeight??45;const gws=profile?.goalWaist??63;
-  const hitWeight=last?.weight!=null&&last.weight<=gw;
-  const hitWaist=last?.waist!=null&&last.waist<=gws;
+  const wNow=latest(bodyLog,"weight"),wsNow=latest(bodyLog,"waist");
+  const hitWeight=wNow!=null&&wNow<=gw;
+  const hitWaist=wsNow!=null&&wsNow<=gws;
   if(hitWeight&&hitWaist)return`${gws} cm waist. ${gw} kg. You did both. Now let's see how far you can really go.`;
   if(hitWeight)return`${gw} kg — you hit your weight goal. The work isn't over, it's just beginning.`;
   if(hitWaist)return`${gws} cm — waist goal reached. Keep pushing. There's always a next level.`;
@@ -125,16 +132,18 @@ export function getCoach(sessions,bodyLog){
   if(!bodyLog.length&&!sessions.length)return"Your journey starts here. Log stats and train.";
   if(!bodyLog.length)return`${sessions.length} session${sessions.length>1?"s":""} done. Log body stats to unlock your progress.`;
   const last=bodyLog[bodyLog.length-1];
-  const first=bodyLog[0];
-  const wtDelta=last.weight!=null&&first.weight!=null?last.weight-first.weight:0;
-  const hasWaist=last.waist!=null&&first.waist!=null;
-  const wsDelta=hasWaist?last.waist-first.waist:0;
+  const w0=earliest(bodyLog,"weight"),w1=latest(bodyLog,"weight");
+  const ws0=earliest(bodyLog,"waist"),ws1=latest(bodyLog,"waist");
+  const wtDelta=w0!=null&&w1!=null?w1-w0:0;
+  const hasWaist=ws0!=null&&ws1!=null;
+  const wsDelta=hasWaist?ws1-ws0:0;
+  const bfVals=bodyLog.filter(e=>e.bodyFat!=null).map(e=>e.bodyFat);
   const weekAgo=Date.now()-7*86400000;
   const recentCore=sessions.filter(s=>new Date(s.date)>weekAgo&&s.sessionId==="core").length;
   const daysSinceLog=Math.floor((Date.now()-new Date(last.date))/86400000);
   if(daysSinceLog>7)return"Step on the scale — your progress is waiting.";
   if(wtDelta<-1&&hasWaist&&wsDelta<-1)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg, waist down ${Math.abs(wsDelta).toFixed(1)} cm. Keep going.`;
-  if(wtDelta>=0&&last.bodyFat&&bodyLog.length>1&&last.bodyFat<bodyLog[bodyLog.length-2].bodyFat)return"Weight steady, body fat dropping. That's recomposition.";
+  if(wtDelta>=0&&bfVals.length>1&&bfVals[bfVals.length-1]<bfVals[bfVals.length-2])return"Weight steady, body fat dropping. That's recomposition.";
   if(hasWaist&&wsDelta<-0.5&&recentCore>=2)return`Waist down ${Math.abs(wsDelta).toFixed(1)} cm. Core sessions are working.`;
   if(wtDelta<-0.5)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg. The deficit is working — stay consistent.`;
   if(sessions.length>=10)return`${sessions.length} sessions done. Consistency is everything.`;
@@ -142,12 +151,12 @@ export function getCoach(sessions,bodyLog){
 }
 export function getMilestones(sessions,bodyLog,profile={}){
   const ms=[];
-  const first=bodyLog[0];
+  const w0=earliest(bodyLog,"weight"),ws0=earliest(bodyLog,"waist");
   bodyLog.forEach(e=>{
-    if(first&&e.weight<first.weight-0.9&&!ms.find(m=>m.id==="w1"))ms.push({id:"w1",icon:"weight",title:"First kilogram gone",sub:`${first.weight} → ${e.weight} kg — the first one is the hardest.`});
-    if(first&&e.waist&&first.waist&&e.waist<first.waist-0.9&&!ms.find(m=>m.id==="ws1"))ms.push({id:"ws1",icon:"waist",title:"First centimetre off the waist",sub:`${first.waist} → ${e.waist} cm — the core work is showing.`});
-    if(first&&e.weight!=null&&e.weight<=(profile?.goalWeight??45)&&!ms.find(m=>m.id==="goalW"))ms.push({id:"goalW",icon:"trophy",title:`Goal weight reached — ${e.weight} kg`,sub:"You hit your target. Now set a new one and keep going."});
-    if(first&&e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:`${profile?.goalWaist??63} cm. You earned it. There's always a next level.`});
+    if(w0!=null&&e.weight!=null&&e.weight<w0-0.9&&!ms.find(m=>m.id==="w1"))ms.push({id:"w1",icon:"weight",title:"First kilogram gone",sub:`${w0} → ${e.weight} kg — the first one is the hardest.`});
+    if(ws0!=null&&e.waist!=null&&e.waist<ws0-0.9&&!ms.find(m=>m.id==="ws1"))ms.push({id:"ws1",icon:"waist",title:"First centimetre off the waist",sub:`${ws0} → ${e.waist} cm — the core work is showing.`});
+    if(e.weight!=null&&e.weight<=(profile?.goalWeight??45)&&!ms.find(m=>m.id==="goalW"))ms.push({id:"goalW",icon:"trophy",title:`Goal weight reached — ${e.weight} kg`,sub:"You hit your target. Now set a new one and keep going."});
+    if(e.waist!=null&&e.waist<=(profile?.goalWaist??63)&&!ms.find(m=>m.id==="goalWs"))ms.push({id:"goalWs",icon:"trophy",title:`Goal waist reached — ${e.waist} cm`,sub:`${profile?.goalWaist??63} cm. You earned it. There's always a next level.`});
     const bfGoal=profile?.goalBodyFat??20;
     if(e.bodyFat&&e.bodyFat<=bfGoal&&!ms.find(m=>m.id==="bf23"))ms.push({id:"bf23",icon:"fire",title:`Under ${bfGoal}% body fat`,sub:"Visible toning territory. You're in it."});
   });
@@ -178,6 +187,3 @@ export function suggestSession(sessions){
     return tS<tA?s:a;
   },SESSIONS[0]);
 }
-
-// ── DATES ─────────────────────────────────────────────────────────────────────
-export const localDay=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;

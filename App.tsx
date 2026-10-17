@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { FONT, P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
@@ -90,6 +90,7 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 .sl{animation:sl 0.28s ease both;}
 @keyframes drw{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 .drw{animation:drw 0.18s ease both;}
+.logf::placeholder{color:rgba(196,144,154,0.55);}
 `;
 
 // ── APP ───────────────────────────────────────────────────────────────────────
@@ -99,6 +100,7 @@ const AppCtx=createContext(null);
 const useApp=()=>useContext(AppCtx);
 
 function Today(){
+  const[editProtein,setEditProtein]=useState(false);
   const {data,persist,setLogModal,setPlanModal,startSession,staleLive,finishStale,discardStale,thisWeekSess}=useApp();
   const lastSess=data.sessions[data.sessions.length-1];
   const daysSince=lastSess?Math.floor((Date.now()-new Date(lastSess.date))/86400000):null;
@@ -107,7 +109,7 @@ function Today(){
   thisWeekSess.forEach(s=>{if(weekCounts[s.sessionId]!==undefined)weekCounts[s.sessionId]++;});
   const todayProtein=getTodayProtein(data.nutritionLog);
   const logProtein=(hit)=>{
-    const today=new Date().toISOString().slice(0,10);
+    const today=localDay();
     const newLog=(data.nutritionLog||[]).filter(e=>e.date!==today);
     if(hit!==null)newLog.push({date:today,hit});
     else newLog.push({date:today,hit:null,skipped:true}); // skipped: show collapsed state
@@ -148,17 +150,16 @@ function Today(){
       {/* Stats row */}
       <div style={{display:"flex",gap:8,flexShrink:0}}>
         {(()=>{
-          const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
-          const first=data.bodyLog.length?data.bodyLog[0]:null;
-          const wt=last?.weight??(first?.weight??50); const wtStart=first?.weight??50;
-          const ws=last?.waist??(first?.waist??69); const wsStart=first?.waist??69;
-          const wtDelta=last?(wt-wtStart).toFixed(1):null;
-          const wsDelta=last?(ws-wsStart).toFixed(1):null;
-          return[[IcWeight,`${wt} kg`,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,`${ws} cm`,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
+          // latest value that was actually logged for each field — never a made-up default
+          const wt=latest(data.bodyLog,"weight"),wtStart=earliest(data.bodyLog,"weight");
+          const ws=latest(data.bodyLog,"waist"),wsStart=earliest(data.bodyLog,"waist");
+          const dl=(a,b)=>a!=null&&b!=null&&a!==b?(a-b).toFixed(1):null;
+          const wtDelta=dl(wt,wtStart),wsDelta=dl(ws,wsStart);
+          return[[IcWeight,wt!=null?`${wt} kg`:null,wtDelta?`${wtDelta>0?"+":""}${wtDelta}`:null,"Weight"],[IcWaist,ws!=null?`${ws} cm`:null,wsDelta?`${wsDelta>0?"+":""}${wsDelta}`:null,"Waist"],[IcSessions,`${data.sessions.length}`,null,"Sessions"]].map(([Ic,v,delta,l])=>(
             <div key={l} style={{flex:1,background:P.white,borderRadius:14,padding:"12px 10px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",cursor:l!=="Sessions"?"pointer":"default",textAlign:"center"}}
               onClick={()=>l!=="Sessions"&&setLogModal(l==="Weight"?"Weight":l==="Waist"?"Waist":"Weight")}>
               <div style={{display:"flex",justifyContent:"center",marginBottom:5}}><Ic c={P.roseDark} s={16}/></div>
-              <div className="mono" style={{fontSize:16,color:P.roseDeep,fontWeight:600,lineHeight:1,marginBottom:3}}>{v}{delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600,marginLeft:3}}>{delta}</span>}</div>
+              <div className="mono" style={{fontSize:16,color:P.roseDeep,fontWeight:600,lineHeight:1,marginBottom:3}}>{v??"—"}{v!=null&&delta&&<span style={{fontSize:9,color:parseFloat(delta)<0?P.roseDark:P.roseMid,fontWeight:600,marginLeft:3}}>{delta}</span>}{v==null&&<span style={{fontSize:9,color:P.roseMid,fontWeight:500,marginLeft:4,fontFamily:"'DM Sans'"}}>tap to log</span>}</div>
               <div style={{fontSize:9,color:P.roseMid,letterSpacing:"0.12em",textTransform:"uppercase",fontWeight:500}}>{l}</div>
             </div>
           ));
@@ -207,25 +208,26 @@ function Today(){
 
       {/* Protein */}
       <div style={{flexShrink:0}}>
-        {!todayProtein&&(()=>{
-          const currWt=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1].weight:50;
-          const proteinTarget=Math.round(currWt*2);
+        {(!todayProtein||editProtein)&&(()=>{
+          const currWt=latest(data.bodyLog,"weight");
+          const proteinTarget=currWt!=null?Math.round(currWt*2):null;
           return(<div style={{background:P.white,border:`1.5px solid ${P.roseLite}`,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
             <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:10}}>
               <IcProtein c={P.roseDark} s={14}/>
-              <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>Protein today? <span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g)</span></p>
+              <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>Protein today? {proteinTarget!=null&&<span style={{color:P.roseMid,fontWeight:400}}>(~{proteinTarget}g)</span>}</p>
             </div>
             <div style={{display:"flex",gap:6}}>
               {([["Yes, hit it",true,"#e8f5e9","#2e7d32","#a5d6a7"],["Not today",false,P.roseLite,P.roseDark,P.rosePrimary],["Skip",null,"transparent",P.roseMid,"rgba(196,144,154,0.3)"]] as [string,boolean|null,string,string,string][]).map(([label,val,bg,col,border])=>(
-                <button key={label} onClick={()=>logProtein(val)} style={{flex:1,background:bg,border:`1.5px solid ${border}`,borderRadius:20,padding:"8px 4px",fontSize:10,color:col,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,transition:"all 0.14s"}}>{label}</button>
+                <button key={label} onClick={()=>{logProtein(val);setEditProtein(false);}} style={{flex:1,background:bg,border:`1.5px solid ${border}`,borderRadius:20,padding:"8px 4px",fontSize:10,color:col,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,transition:"all 0.14s"}}>{label}</button>
               ))}
             </div>
           </div>);
         })()}
-        {todayProtein&&(
-          <div style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:10}}>
+        {todayProtein&&!editProtein&&(
+          <div onClick={()=>setEditProtein(true)} style={{background:todayProtein.hit===true?"#f1f8f1":todayProtein.skipped?"rgba(252,232,236,0.3)":"rgba(252,232,236,0.6)",border:`1.5px solid ${todayProtein.hit===true?"#a5d6a7":P.roseLite}`,borderRadius:14,padding:"12px 16px",display:"flex",alignItems:"center",gap:10,cursor:"pointer"}}>
             <div style={{width:22,height:22,borderRadius:"50%",background:todayProtein.hit===true?"#2e7d32":P.roseMid,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><IcCheck c="white" s={10}/></div>
             <p style={{fontSize:11,color:todayProtein.hit===true?"#2e7d32":P.roseMid,fontStyle:"italic"}}>{todayProtein.hit===true?"Protein logged — great work today.":todayProtein.skipped?"Skipped for today — check back tomorrow.":"Logged — not today. Tomorrow is another chance."}</p>
+            <span style={{marginLeft:"auto",fontSize:10,color:P.roseMid,flexShrink:0}}>Change</span>
           </div>
         )}
       </div>
@@ -659,17 +661,12 @@ function SwapModal(){
 
 function Progress(){
   const {tab,setTab,data,setLogModal,setProgressModal}=useApp();
-  const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
-  const first=data.bodyLog.length?data.bodyLog[0]:null;
-  const wt=last?.weight??null;
-  const wtStart=first?.weight??50;
-  const ws=last?.waist??null;
-  const wsStart=first?.waist??69;
-  const bf=last?.bodyFat??null;
+  const wt=latest(data.bodyLog,"weight"),wtStart=earliest(data.bodyLog,"weight");
+  const ws=latest(data.bodyLog,"waist"),wsStart=earliest(data.bodyLog,"waist");
   const goalW=data.profile.goalWeight??45;
   const goalWs=data.profile.goalWaist??63;
-  const wtPct=wt?Math.min(100,Math.max(0,((wtStart-wt)/(wtStart-goalW||1))*100)):0;
-  const wsPct=ws?Math.min(100,Math.max(0,((wsStart-ws)/(wsStart-goalWs||1))*100)):0;
+  const wtPct=wt!=null&&wtStart!=null?Math.min(100,Math.max(0,((wtStart-wt)/(wtStart-goalW||1))*100)):0;
+  const wsPct=ws!=null&&wsStart!=null?Math.min(100,Math.max(0,((wsStart-ws)/(wsStart-goalWs||1))*100)):0;
   const weekAgo=Date.now()-7*86400000;
   const weekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
   const weekTypes=new Set(weekSess.map(s=>s.sessionId));
@@ -729,13 +726,13 @@ function Progress(){
           <span style={{fontSize:10,color:P.roseMid}}>tap for chart</span>
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:5}}>
-          <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Weight <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wtStart} → {goalW} kg</span></span>
+          <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Weight <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wtStart!=null?`${wtStart} → ${goalW} kg`:`goal ${goalW} kg`}</span></span>
           <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWeight==="number"?`~${eta.weeksToGoalWeight} wk`:eta.weeksToGoalWeight:<span style={{fontSize:9,color:P.roseMid,fontStyle:"italic"}}>log 2+ days</span>}</span>
         </div>
         <div style={{height:5,background:P.roseLite,borderRadius:3,marginBottom:10}}><div style={{height:"100%",width:`${wtPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
         {wt!=null&&wt<=goalW&&<p style={{fontSize:10,color:P.roseDark,fontWeight:500,marginBottom:6,textAlign:"center"}}>✦ Goal reached — tap Goals in Me to set your next target</p>}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:5}}>
-          <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Waist <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wsStart} → {goalWs} cm</span></span>
+          <span style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>Waist <span style={{fontSize:11,fontWeight:400,color:P.roseMid}}>{wsStart!=null?`${wsStart} → ${goalWs} cm`:`goal ${goalWs} cm`}</span></span>
           <span style={{fontSize:13,color:P.roseDark,fontWeight:600}}>{eta?typeof eta.weeksToGoalWaist==="number"?`~${eta.weeksToGoalWaist} wk`:eta.weeksToGoalWaist:<span style={{fontSize:9,color:P.roseMid,fontStyle:"italic"}}>log 2+ days</span>}</span>
         </div>
         <div style={{height:5,background:P.roseLite,borderRadius:3}}><div style={{height:"100%",width:`${wsPct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:3,transition:"width 0.5s ease"}}/></div>
@@ -842,22 +839,34 @@ function Progress(){
   </div>);
 }
 
+// Body numbers: fields start empty with the last logged value as a grey hint; only what's typed is saved
+const LOG_FIELDS=[
+  {key:"weight",label:"Weight",unit:"kg",min:30,max:200},
+  {key:"waist",label:"Waist",unit:"cm",min:40,max:150},
+  {key:"bodyFat",label:"Body fat",unit:"%",min:5,max:60},
+  {key:"muscleMass",label:"Muscle",unit:"kg",min:10,max:120},
+  {key:"metabolicAge",label:"Met. age",unit:"yrs",min:10,max:100},
+];
+const toNum=s=>{const v=parseFloat(String(s??"").replace(",","."));return isNaN(v)?null:v;};
+
 function LogModal(){
   const {data,logModal,setLogModal,logBodyEntry}=useApp();
   const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
-  const[wt,setWt]=useState(last?.weight?.toString()||"");
-  const[ws,setWs]=useState(last?.waist?.toString()||"");
-  const[bf,setBf]=useState(last?.bodyFat?.toString()||"");
-  const[mm,setMm]=useState(last?.muscleMass?.toString()||"");
-  const[ma,setMa]=useState(last?.metabolicAge?.toString()||"");
+  const[vals,setVals]=useState({});
   const[showMore,setShowMore]=useState(false);
-  const[activeField,setActiveField]=useState<string|null>(logModal||null);
+  const[warned,setWarned]=useState(null);
   const[kbOffset,setKbOffset]=useState(0);
-  const daysSince=last?Math.floor((Date.now()-new Date(last.date))/86400000):null;
-  const wtDelta=wt&&last?.weight?(parseFloat(wt)-last.weight).toFixed(1):null;
-  const wsDelta=ws&&last?.waist?(parseFloat(ws)-last.waist).toFixed(1):null;
-  const bfDelta=bf&&last?.bodyFat?(parseFloat(bf)-last.bodyFat).toFixed(1):null;
-  const canSave=!!(wt||ws||bf);
+  const daysSince=last?Math.floor((Date.now()-new Date(last.date).getTime())/86400000):null;
+  const typed=LOG_FIELDS.filter(f=>toNum(vals[f.key])!=null);
+  const dirty=LOG_FIELDS.some(f=>(vals[f.key]||"")!=="");
+  const canSave=typed.length>0;
+  const odd=typed.filter(f=>{const v=toNum(vals[f.key]);return v<f.min||v>f.max;});
+  const oddKey=odd.map(f=>f.key+"="+vals[f.key]).join("|");
+  const hintFor=key=>{
+    const e=latestEntry(data.bodyLog,key);if(!e)return null;
+    const d=Math.floor((Date.now()-new Date(e.date).getTime())/86400000);
+    return{value:e[key],age:d<=0?"today":d===1?"yesterday":`${d} d ago`};
+  };
 
   // Push sheet up when keyboard opens on iOS
   useEffect(()=>{
@@ -874,10 +883,19 @@ function LogModal(){
 
   const save=()=>{
     if(!canSave)return;
-    logBodyEntry({...(wt&&{weight:parseFloat(wt)}),...(ws&&{waist:parseFloat(ws)}),...(bf&&{bodyFat:parseFloat(bf)}),...(mm&&{muscleMass:parseFloat(mm)}),...(ma&&{metabolicAge:parseFloat(ma)})});
+    if(odd.length&&warned!==oddKey){setWarned(oddKey);return;}   // unusual number: ask once
+    const entry={};typed.forEach(f=>{entry[f.key]=toNum(vals[f.key]);});
+    logBodyEntry(entry);
     setLogModal(null);
   };
-  return(<div className="mo" onClick={()=>setLogModal(null)}>
+  const field=(f,focus)=>{
+    const h=hintFor(f.key),v=toNum(vals[f.key]);
+    const delta=v!=null&&h?Math.round((v-h.value)*10)/10:null;
+    return<LogField key={f.key} label={f.label} unit={f.unit} val={vals[f.key]||""} hint={h} delta={delta} autoFocus={focus}
+      setVal={x=>{setVals(p=>({...p,[f.key]:x}));setWarned(null);}}/>;
+  };
+  const askAgain=odd.length>0&&warned===oddKey;
+  return(<div className="mo" onClick={()=>{if(!dirty)setLogModal(null);}}>
     <div className="ms sl" onClick={e=>e.stopPropagation()} style={{paddingBottom:`calc(${kbOffset}px + 24px + env(safe-area-inset-bottom,0px))`,transition:"padding-bottom 0.2s ease"}}>
       <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
@@ -888,40 +906,39 @@ function LogModal(){
         {daysSince===0?"Logged today — update if things changed":daysSince===1?"Last logged yesterday":daysSince?`Last logged ${daysSince} days ago`:"First entry — set your baseline"}
       </p>
       <div style={{display:"flex",gap:8,marginBottom:12}}>
-        <LogField label="Weight" val={wt} setVal={setWt} unit="kg" delta={wtDelta} activeField={activeField} setActiveField={setActiveField}/>
-        <LogField label="Waist" val={ws} setVal={setWs} unit="cm" delta={wsDelta} activeField={activeField} setActiveField={setActiveField}/>
-        <LogField label="Body fat" val={bf} setVal={setBf} unit="%" delta={bfDelta} activeField={activeField} setActiveField={setActiveField}/>
+        {LOG_FIELDS.slice(0,3).map(f=>field(f,logModal===f.label))}
       </div>
       <button onClick={()=>setShowMore(s=>!s)} style={{background:"none",border:"none",cursor:"pointer",color:P.roseMid,fontSize:10,fontFamily:"'DM Sans'",letterSpacing:"0.06em",padding:"4px 0",display:"flex",alignItems:"center",gap:4,marginBottom:showMore?10:14}}>
         <span style={{display:"inline-block",transition:"transform 0.2s",transform:showMore?"rotate(180deg)":"none"}}>▾</span>
         {showMore?"Hide":"More measurements"}
       </button>
       {showMore&&(<div style={{display:"flex",gap:8,marginBottom:14}}>
-        <LogField label="Muscle" val={mm} setVal={setMm} unit="kg" activeField={activeField} setActiveField={setActiveField}/>
-        <LogField label="Met. age" val={ma} setVal={setMa} unit="yrs" activeField={activeField} setActiveField={setActiveField}/>
+        {LOG_FIELDS.slice(3).map(f=>field(f,false))}
       </div>)}
-      <button onClick={save} style={{background:canSave?P.roseDark:"rgba(212,120,138,0.3)",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:canSave?"pointer":"not-allowed",fontFamily:"'DM Sans'",width:"100%",transition:"opacity 0.15s"}}>SAVE READING</button>
+      {askAgain&&<p style={{fontSize:11,color:"#c0392b",textAlign:"center",marginBottom:10,lineHeight:1.5}}>Sure? {odd.map(f=>`${vals[f.key]} ${f.unit}`).join(", ")} looks unusual. Tap save again to keep it.</p>}
+      <button onClick={save} style={{background:canSave?P.roseDark:"rgba(212,120,138,0.3)",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,letterSpacing:"0.08em",cursor:canSave?"pointer":"not-allowed",fontFamily:"'DM Sans'",width:"100%",transition:"opacity 0.15s"}}>{askAgain?"SAVE ANYWAY":"SAVE READING"}</button>
     </div>
   </div>);
 }
 
-function LogField({label,val,setVal,unit,delta,activeField,setActiveField}){
-  const isActive=activeField===label;
-  const neg=delta&&parseFloat(delta)<0;
-  return(<div onClick={()=>setActiveField(label)} style={{flex:1,background:isActive?P.white:"rgba(255,255,255,0.06)",border:`1.5px solid ${isActive?P.roseDark:"rgba(255,255,255,0.12)"}`,borderRadius:14,padding:"10px 8px",textAlign:"center",cursor:"pointer",transition:"all 0.15s"}}>
-    <p style={{fontSize:8,letterSpacing:"0.14em",color:isActive?P.roseDark:P.roseMid,textTransform:"uppercase",marginBottom:4}}>{label}</p>
-    {isActive
-      ?<input autoFocus type="number" step="0.1" value={val} onChange={e=>setVal(e.target.value)} style={{width:"100%",border:"none",background:"transparent",textAlign:"center",fontSize:24,fontFamily:"'Tenor Sans',sans-serif",color:P.roseDeep,outline:"none",fontVariantNumeric:"tabular-nums"}}/>
-      :<p className="mono" style={{fontSize:24,color:val?P.roseDeep:"rgba(255,255,255,0.25)",lineHeight:1}}>{val||"—"}</p>
-    }
-    <p style={{fontSize:9,color:isActive?P.roseMid:"rgba(255,255,255,0.4)",marginTop:2}}>{unit}</p>
-    {delta&&<p style={{fontSize:8,color:neg?P.roseDark:P.roseMid,fontWeight:neg?600:400,marginTop:2}}>{neg?"↓":"↑"} {Math.abs(parseFloat(delta))}</p>}
-  </div>);
+function LogField({label,val,setVal,unit,hint,delta,autoFocus}){
+  const[focus,setFocus]=useState(false);
+  const neg=delta!=null&&delta<0;
+  return(<label style={{flex:1,display:"block",background:focus?P.white:P.bg,border:`1.5px solid ${focus?P.roseDark:P.roseLite}`,borderRadius:14,padding:"10px 8px",textAlign:"center",cursor:"text",transition:"all 0.15s"}}>
+    <p style={{fontSize:8,letterSpacing:"0.14em",color:focus?P.roseDark:P.roseMid,textTransform:"uppercase",marginBottom:4}}>{label}</p>
+    <input className="logf" type="text" inputMode="decimal" autoComplete="off" autoFocus={autoFocus} value={val} placeholder={hint?String(hint.value):"—"}
+      onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)} onChange={e=>setVal(e.target.value.replace(/[^0-9.,]/g,""))}
+      style={{width:"100%",border:"none",background:"transparent",textAlign:"center",fontSize:24,fontFamily:"'Tenor Sans',sans-serif",color:P.roseDeep,outline:"none",padding:0,fontVariantNumeric:"tabular-nums"}}/>
+    <p style={{fontSize:9,color:P.roseMid,marginTop:2}}>{unit}{hint&&!val?` · ${hint.age}`:""}</p>
+    {delta!=null&&delta!==0&&<p style={{fontSize:8,color:neg?P.roseDark:P.roseMid,fontWeight:neg?600:400,marginTop:2}}>{neg?"↓":"↑"} {Math.abs(delta)}</p>}
+  </label>);
 }
 
 function ChartPanel({close}){
-  const {data}=useApp();
+  const {data,persist}=useApp();
   const[metric,setMetric]=useState("weight");
+  const[sel,setSel]=useState(null);
+  const[sure,setSure]=useState(false);
   const entries=data.bodyLog.filter(e=>metric==="weight"?e.weight!=null:metric==="waist"?e.waist!=null:e.bodyFat!=null);
   const vals=entries.map(e=>metric==="weight"?e.weight:metric==="waist"?e.waist:e.bodyFat);
   const goal=metric==="weight"?(data.profile.goalWeight??45):metric==="waist"?(data.profile.goalWaist??63):(data.profile.goalBodyFat??20);
@@ -933,7 +950,7 @@ function ChartPanel({close}){
   const xOf=(i)=>safeVals.length>1?pad+(i/(safeVals.length-1))*(W-pad*2):W/2;
   const yOf=(v)=>H-pad-((v-minV)/(maxV-minV||1))*(H-pad*2);
   const goalY=yOf(goal);
-  const coreLine=metric==="waist"&&data.sessions.filter(s=>s.sessionId==="core").length>0&&data.bodyLog.length>1&&(data.bodyLog[data.bodyLog.length-1].waist||0)<(data.bodyLog[0].waist||0)
+  const coreLine=metric==="waist"&&data.sessions.filter(s=>s.sessionId==="core").length>0&&vals.length>1&&vals[vals.length-1]<vals[0]
     ?"Core sessions are shrinking your waist. Keep them in rotation.":null;
   return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
     <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
@@ -943,7 +960,7 @@ function ChartPanel({close}){
     </div>
     <div style={{display:"flex",gap:4,background:P.roseLite,borderRadius:12,padding:"3px",marginBottom:16}}>
       {[["weight","Weight"],["waist","Waist"],["bodyFat","Body fat"]].map(([m,lbl])=>(
-        <button key={m} onClick={()=>setMetric(m)} style={{flex:1,border:"none",borderRadius:10,padding:"8px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,background:metric===m?P.roseDark:"transparent",color:metric===m?"white":P.roseDark,transition:"all 0.15s"}}>{lbl}</button>
+        <button key={m} onClick={()=>{setMetric(m);setSel(null);setSure(false);}} style={{flex:1,border:"none",borderRadius:10,padding:"8px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,background:metric===m?P.roseDark:"transparent",color:metric===m?"white":P.roseDark,transition:"all 0.15s"}}>{lbl}</button>
       ))}
     </div>
     {vals.length<1?(<div style={{height:H,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:12}}><p style={{color:P.roseMid,fontSize:12,fontStyle:"italic"}}>No data yet — log your stats to see your trend.</p></div>):(
@@ -952,15 +969,25 @@ function ChartPanel({close}){
         <text x={W-pad+2} y={goalY+4} fontSize="8" fill={P.roseMid} fontFamily="DM Sans">goal</text>
         {vals.length>1&&<path d={`M${xOf(0)},${yOf(vals[0])} ${vals.slice(1).map((v,i)=>`L${xOf(i+1)},${yOf(v)}`).join(" ")} L${xOf(vals.length-1)},${H-4} L${xOf(0)},${H-4} Z`} fill={`${P.rosePrimary}18`}/>}
         {vals.length>1&&<polyline points={vals.map((v,i)=>`${xOf(i)},${yOf(v)}`).join(" ")} fill="none" stroke={P.roseDark} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>}
-        {vals.map((v,i)=><circle key={i} cx={xOf(i)} cy={yOf(v)} r={i===vals.length-1?4:2.5} fill={i===vals.length-1?P.roseDeep:P.roseDark} stroke={P.roseDark} strokeWidth="1.5"/>)}
+        {vals.map((v,i)=><circle key={i} cx={xOf(i)} cy={yOf(v)} r={i===sel?5:i===vals.length-1?4:2.5} fill={i===vals.length-1||i===sel?P.roseDeep:P.roseDark} stroke={P.roseDark} strokeWidth="1.5"/>)}
+      {vals.map((v,i)=><circle key={"hit"+i} cx={xOf(i)} cy={yOf(v)} r={12} fill="transparent" style={{cursor:"pointer"}} onClick={()=>{setSel(i);setSure(false);}}/>)}
         <text x={xOf(0)} y={H} fontSize="7" fill={P.roseMid} fontFamily="DM Sans" textAnchor="middle">{vals.length===1?"only entry":"start"}</text>
         {vals.length>1&&<text x={xOf(vals.length-1)} y={H} fontSize="7" fill={P.roseMid} fontFamily="DM Sans" textAnchor="middle">now</text>}
       </svg>
     )}
+    {sel!=null&&entries[sel]?(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:P.bg,borderRadius:10,padding:"8px 12px",marginBottom:12}}>
+      <span style={{fontSize:11,color:P.roseDeep}}>{new Date(entries[sel].date).toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})} · {vals[sel]} {unit}</span>
+      <button onClick={()=>{
+        if(!sure){setSure(true);return;}
+        const e=entries[sel];
+        const keep=["weight","waist","bodyFat","muscleMass","metabolicAge"];
+        const bodyLog=data.bodyLog.flatMap(x=>{if(x!==e)return[x];const y={...x};delete y[metric];return keep.some(k=>y[k]!=null)?[y]:[];});
+        persist({...data,bodyLog});setSel(null);setSure(false);
+      }} style={{background:"none",border:"none",color:"#c0392b",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500}}>{sure?"Tap again to delete":"Delete"}</button>
+    </div>):vals.length>0&&<p style={{fontSize:9,color:P.roseMid,textAlign:"center",marginTop:-4,marginBottom:12}}>Tap a point to see or delete it</p>}
     {vals.length>0&&<div style={{display:"flex",gap:8,marginBottom:14}}>
       {(()=>{
-        const first=data.bodyLog[0];
-        const startVal=metric==="weight"?(first?.weight??vals[0]):metric==="waist"?(first?.waist??vals[0]):vals[0];
+        const startVal=vals[0];
         const nowVal=vals[vals.length-1];
         return[["Start",startVal],["Now",nowVal],["Change",(nowVal-startVal)]].map(([lbl,v],i)=>(
         <div key={lbl} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:14,padding:"12px 10px",textAlign:"center",boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
@@ -1377,7 +1404,6 @@ function ImportModal(){
 function Me(){
   const {data,setMeModal,importInputRef,thisWeekSess}=useApp();
   const profile=data.profile||DEFAULT_PROFILE;
-  const last=data.bodyLog.length?data.bodyLog[data.bodyLog.length-1]:null;
 
   return(<>
     <div className="screen-scroll" style={{background:P.roseDeep}}>
@@ -1601,13 +1627,14 @@ export default function App(){
   const persist=d=>{setData(d);sv(d);};
 
   const logBodyEntry=entry=>{
-    const today=new Date().toISOString().slice(0,10);
-    const existing=data.bodyLog.find(e=>e.date.slice(0,10)===today);
+    const today=localDay();
+    const isToday=e=>localDay(new Date(e.date))===today;
+    const existing=data.bodyLog.find(isToday);
     // Same day → merge (correction). New day → new entry (progress).
     const merged=existing
       ?{...existing,...entry,date:new Date().toISOString()}
       :{date:new Date().toISOString(),...entry};
-    const newLog=[...data.bodyLog.filter(e=>e.date.slice(0,10)!==today),merged]
+    const newLog=[...data.bodyLog.filter(e=>!isToday(e)),merged]
       .sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
     persist({...data,bodyLog:newLog});
   };
