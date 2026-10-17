@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { FONT, P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession, localDay } from "./engine";
+import { getWeight, getPR, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
 // Each icon is a React component: <IcHome c="#d4788a" s={22}/>
@@ -39,52 +40,6 @@ const IcImport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 
 
 // Session icon map
 const SessIcon={glutes:IcGlutes,core:IcCore,shape:IcShape};
-
-// ── STORAGE ──────────────────────────────────────────────────────────────────
-const KEY="lynn_gym_v3";
-const DEFAULT_PROFILE={name:"Lynn",goalWeight:45,goalWaist:63,goalBodyFat:20};
-const ld=()=>{
-  try{
-    const raw=JSON.parse(localStorage.getItem(KEY))||{};
-    if(!raw.profile)raw.profile={...DEFAULT_PROFILE};
-    if(!raw.nutritionLog)raw.nutritionLog=[];
-    return raw;
-  }catch{return{};}
-};
-const sv=(d)=>{try{localStorage.setItem(KEY,JSON.stringify(d));}catch{}};
-const APP_VERSION="1.2";
-
-// ── BACKUP ───────────────────────────────────────────────────────────────────
-const backupJson=(data)=>JSON.stringify({app:"PeachFit",format:1,appVersion:APP_VERSION,exportedAt:new Date().toISOString(),data},null,2);
-// Accepts a PeachFit backup file (or raw saved data) and returns data ready to save
-const parseBackup=(text)=>{
-  const raw=JSON.parse(text);
-  const d=raw&&raw.app==="PeachFit"&&raw.data?raw.data:raw;
-  if(!d||typeof d!=="object"||!Array.isArray(d.sessions)||!Array.isArray(d.bodyLog))throw new Error("not a PeachFit backup");
-  return{
-    data:{...d,sessions:d.sessions,bodyLog:d.bodyLog,nutritionLog:Array.isArray(d.nutritionLog)?d.nutritionLog:[],profile:{...DEFAULT_PROFILE,...(d.profile||{})}},
-    exportedAt:raw&&raw.exportedAt?raw.exportedAt:null,
-  };
-};
-// Share sheet on phones (Save to Files, AirDrop, mail); plain download where sharing files isn't supported
-const exportBackup=(data)=>{
-  const json=backupJson(data);
-  const name=`peachfit-backup-${localDay()}.json`;
-  const download=()=>{
-    const url=URL.createObjectURL(new Blob([json],{type:"application/json"}));
-    const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),2000);
-  };
-  const nav:any=navigator;
-  for(const type of ["application/json","text/plain"]){
-    let file=null;try{file=new File([json],name,{type});}catch{}
-    if(file&&nav.canShare&&nav.canShare({files:[file]})){
-      nav.share({files:[file],title:"PeachFit backup"}).catch(e=>{if(!e||e.name!=="AbortError")download();});
-      return;
-    }
-  }
-  download();
-};
 
 // ── SVG EXERCISE ANIMATIONS ───────────────────────────────────────────────────
 const A={
@@ -143,7 +98,7 @@ const AppCtx=createContext(null);
 const useApp=()=>useContext(AppCtx);
 
 function Today(){
-  const {data,persist,active,summary,setLogModal,setPlanModal,startSession,thisWeekSess}=useApp();
+  const {data,persist,setLogModal,setPlanModal,startSession,staleLive,finishStale,discardStale,thisWeekSess}=useApp();
   const lastSess=data.sessions[data.sessions.length-1];
   const daysSince=lastSess?Math.floor((Date.now()-new Date(lastSess.date))/86400000):null;
   const suggested=suggestSession(data.sessions);
@@ -173,6 +128,21 @@ function Today(){
       <div style={{background:P.white,borderLeft:`3px solid ${P.roseDark}`,borderRadius:"0 14px 14px 0",padding:"12px 16px",flexShrink:0,boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
         <p style={{fontSize:12,fontStyle:"italic",color:P.roseDeep,lineHeight:1.5}}>{getBanner(data.sessions,data.nutritionLog,data.bodyLog,data.profile)}</p>
       </div>
+
+      {/* Unfinished workout (older than 3 h) — save it or drop it */}
+      {staleLive&&(()=>{
+        const n=Object.values(staleLive.sess.comp||{}).filter(Boolean).length;
+        const tot=staleLive.pl.exercises.reduce((a,e)=>a+e.sets,0);
+        const h=Math.max(1,Math.round((Date.now()-(staleLive.sess.lastActionAt||staleLive.sess.startedAt||Date.now()))/3600000));
+        return(<div style={{background:P.white,border:`1.5px solid ${P.rosePrimary}`,borderRadius:14,padding:"12px 16px",flexShrink:0,boxShadow:"0 2px 12px rgba(212,120,138,0.09)"}}>
+          <p style={{fontSize:12,color:P.roseDeep,fontWeight:500}}>Unfinished {staleLive.pl.name}</p>
+          <p style={{fontSize:10,color:P.roseMid,marginTop:2,marginBottom:10}}>{n} of {tot} sets · {h<24?`${h} h ago`:`${Math.round(h/24)} d ago`}</p>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={finishStale} style={{flex:1,background:P.roseDark,color:"white",border:"none",borderRadius:20,padding:"8px 4px",fontSize:10,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em"}}>FINISH & SAVE</button>
+            <button onClick={discardStale} style={{flex:1,background:"transparent",border:`1.5px solid ${P.roseLite}`,color:P.roseMid,borderRadius:20,padding:"8px 4px",fontSize:10,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:500,letterSpacing:"0.06em"}}>DISCARD</button>
+          </div>
+        </div>);
+      })()}
 
       {/* Stats row */}
       <div style={{display:"flex",gap:8,flexShrink:0}}>
@@ -264,7 +234,7 @@ function Today(){
 }
 
 function Workout(){
-  const {setTab,data,active,setActive,sess,setSess,setModal,summary,setSummary,setSwapModal,startTimeRef,finishingRef,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,totSets,doneSets}=useApp();
+  const {data,active,sess,setSess,setModal,setSwapModal,finishingRef,completeCurrentSet,advanceAfterRest,requestFinish,requestLeave,totSets,doneSets}=useApp();
   if(!active||!sess)return null;
 
   const ei=sess.currentExIdx??0;
@@ -301,14 +271,7 @@ function Workout(){
     </div>
   );
 
-  const clearSession=()=>{startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setSummary(null);};
-  const stopAndBack=()=>{
-    if(doneSets>0){
-      const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
-      if(choice){saveSession();clearSession();setTab("today");}
-      else{clearSession();setTab("today");}
-    } else {clearSession();setTab("today");}
-  };
+  const stopAndBack=()=>requestLeave("today");
 
   // REST screen
   if(phase==="rest"){
@@ -318,7 +281,7 @@ function Workout(){
       <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
         <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
-        <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
+        <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={requestFinish}>FINISH</button>
       </div>
       <div style={{padding:"6px 20px 0"}}>{exDots}</div>
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 24px"}}>
@@ -329,7 +292,7 @@ function Workout(){
           {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":`${sess.weights?.[nextEx.id]??getWeight(nextEx,data.sessions)} ${nextEx.unit||"kg"}`}</p></>)
           :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":`${cw} ${ex.unit||"kg"}`}</p></>)}
         </div>
-        <button onClick={advanceAfterRest} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
+        <button onClick={()=>advanceAfterRest(true)} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
       </div>
       <div style={{padding:"0 24px calc(16px + env(safe-area-inset-bottom,0px))"}}>
         <div style={{height:2,background:"rgba(255,255,255,0.07)",borderRadius:2,marginBottom:7}}><div style={{height:"100%",width:`${prog*100}%`,background:P.rosePrimary,borderRadius:2,transition:"width 0.3s"}}/></div>
@@ -345,8 +308,8 @@ function Workout(){
       <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"16px 0 6px"}}>All sets done</p>
       <h2 className="serif" style={{fontSize:30,color:"white",fontWeight:400,marginBottom:8}}>Incredible,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
       <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>Every set complete.</p>
-      <button className="btnP" style={{marginBottom:12}} onClick={finishSession}>FINISH SESSION</button>
-      <button onClick={()=>{
+      <button className="btnP" style={{marginBottom:12}} onClick={requestFinish}>FINISH SESSION</button>
+      {doneSets<totSets&&<button onClick={()=>{
         finishingRef.current=false;
         setSess(prev=>{
           // Find first exercise that hasn't had all sets completed
@@ -354,9 +317,9 @@ function Workout(){
             Object.keys(prev.comp).filter(k=>k.startsWith(`${e.id}-`)&&prev.comp[k]).length < e.sets
           );
           const goTo=firstIncomplete>=0?firstIncomplete:0;
-          return{...prev,phase:"active",currentExIdx:goTo,currentSet:0};
+          return{...prev,phase:"active",currentExIdx:goTo,currentSet:0,lastActionAt:Date.now()};
         });
-      }} style={{background:"none",border:`1px solid rgba(242,160,176,0.3)`,color:P.roseHero,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",padding:"8px 24px",borderRadius:40,letterSpacing:"0.06em"}}>← Back to exercises</button>
+      }} style={{background:"none",border:`1px solid rgba(242,160,176,0.3)`,color:P.roseHero,fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",padding:"8px 24px",borderRadius:40,letterSpacing:"0.06em"}}>← Back to exercises</button>}
     </div>);
   }
 
@@ -367,7 +330,7 @@ function Workout(){
     <div style={{padding:"calc(env(safe-area-inset-top, 0px) + 40px) 20px 0",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
       <button onClick={stopAndBack} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcBack c={P.roseMid} s={20}/></button>
       <div style={{display:"flex",alignItems:"center",gap:6}}><SIcon c={P.roseMid} s={14}/><p style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase"}}>{active.name}</p></div>
-      <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={finishSession}>FINISH</button>
+      <button className="btnG" style={{borderColor:"rgba(242,160,176,0.3)",color:P.roseHero,fontSize:9,padding:"5px 10px"}} onClick={requestFinish}>FINISH</button>
     </div>
     {/* Progress strip */}
     <div style={{padding:"8px 20px 0",flexShrink:0}}>
@@ -393,7 +356,7 @@ function Workout(){
         ):(
           <div style={{display:"inline-flex",alignItems:"center",gap:0,background:"rgba(255,255,255,0.07)",borderRadius:14,marginBottom:10,overflow:"hidden"}}>
             <button
-              onClick={()=>setSess(p=>({...p,weights:{...p.weights,[ex.id]:Math.max(0,Math.round(((p.weights?.[ex.id]??cw)-ex.step)*4)/4)}}))}
+              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:Math.max(0,Math.round(((p.weights?.[ex.id]??cw)-ex.step)*4)/4)}}))}
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>−</button>
             <div style={{display:"inline-flex",alignItems:"baseline",gap:5,padding:"10px 4px"}}>
               <span className="mono" style={{fontSize:38,color:isUp?P.roseHero:"white",lineHeight:1,fontVariantNumeric:"tabular-nums"}}>{cw}</span>
@@ -401,7 +364,7 @@ function Workout(){
               {isUp&&<span style={{marginLeft:2}}><IcArrowUp c={P.roseHero} s={14}/></span>}
             </div>
             <button
-              onClick={()=>setSess(p=>({...p,weights:{...p.weights,[ex.id]:Math.round(((p.weights?.[ex.id]??cw)+ex.step)*4)/4}}))}
+              onClick={()=>setSess(p=>({...p,lastActionAt:Date.now(),weights:{...p.weights,[ex.id]:Math.round(((p.weights?.[ex.id]??cw)+ex.step)*4)/4}}))}
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>+</button>
           </div>
         )}
@@ -425,7 +388,7 @@ function Workout(){
             <IcCheck c="white" s={15}/> Done — Set {currentSet+1} of {ex.sets}
           </button>
         ):(
-          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n}));else setSess(p=>({...p,phase:"done"}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <button onClick={()=>{const n=ei+1;if(n<active.exercises.length)setSess(p=>({...p,phase:"active",currentSet:0,currentExIdx:n,lastActionAt:Date.now()}));else setSess(p=>({...p,phase:"done",lastActionAt:Date.now()}));}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"16px",fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.05em",boxShadow:`0 4px 18px rgba(212,120,138,0.38)`,width:"100%",height:"100%",display:"flex",alignItems:"center",justifyContent:"center"}}>
             {ei+1<active.exercises.length?`Next: ${active.exercises[ei+1].name} →`:"Finish Session"}
           </button>
         )}
@@ -454,7 +417,7 @@ function RestRing(){
   const[rest,setRest]=useState(left);
   const done=useRef(false);
   useEffect(()=>{
-    const tick=()=>{const r=left();setRest(r);if(r===0&&!done.current){done.current=true;advanceAfterRest();}};
+    const tick=()=>{const r=left();setRest(r);if(r===0&&!done.current){done.current=true;advanceAfterRest(false);}};
     tick();
     const id=setInterval(tick,250);
     return()=>clearInterval(id);
@@ -474,8 +437,8 @@ function RestRing(){
 
 // Workout time + kcal — computed from the start time, so it survives a locked phone and never flashes 00:00
 function WorkoutClock(){
-  const {active,startTimeRef}=useApp();
-  const secs=()=>startTimeRef.current?Math.max(0,Math.floor((Date.now()-startTimeRef.current)/1000)):0;
+  const {active,sess}=useApp();
+  const secs=()=>sess&&sess.startedAt?Math.max(0,Math.floor((Date.now()-sess.startedAt)/1000)):0;
   const[sec,setSec]=useState(secs);
   useEffect(()=>{const id=setInterval(()=>setSec(secs()),500);return()=>clearInterval(id);},[]);
   const mmss=`${String(Math.floor(sec/60)).padStart(2,"0")}:${String(sec%60).padStart(2,"0")}`;
@@ -493,8 +456,36 @@ function WorkoutClock(){
   </div>);
 }
 
+// Leave or finish a workout — one sheet instead of the browser prompts
+function WorkoutSheet(){
+  const {setTab,active,setLogModal,setProgressModal,setMeModal,saveSession,finishSession,clearWorkout,workoutSheet,setWorkoutSheet,totSets,doneSets}=useApp();
+  if(!workoutSheet||!active)return null;
+  const close=()=>setWorkoutSheet(null);
+  const leave=save=>{
+    if(save)saveSession();
+    const t=workoutSheet.target||"today";
+    clearWorkout();setWorkoutSheet(null);setTab(t);setLogModal(null);setProgressModal(null);setMeModal(null);
+  };
+  const finish=workoutSheet.kind==="finish";
+  const primary={background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"};
+  return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
+    <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+    <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center"}}>{finish?<IcCheck c={P.roseDark} s={20}/>:<IcBack c={P.roseDark} s={20}/>}</div></div>
+    <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>{finish?`Finish with ${doneSets} of ${totSets} sets?`:"Leave this workout?"}</h3>
+    <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{finish?"Sets you didn't do are saved as not done.":`${doneSets} set${doneSets!==1?"s":""} done in ${active.name}. Save them to your history, or keep training.`}</p>
+    {finish?(<>
+      <button onClick={()=>{setWorkoutSheet(null);finishSession();}} style={primary}>FINISH WORKOUT</button>
+      <button onClick={close} className="btnG" style={{width:"100%"}}>KEEP TRAINING</button>
+    </>):(<>
+      <button onClick={close} style={primary}>KEEP TRAINING</button>
+      <button onClick={()=>leave(true)} className="btnG" style={{width:"100%",marginBottom:6}}>SAVE & LEAVE</button>
+      <button onClick={()=>leave(false)} style={{background:"none",border:"none",color:"#c0392b",fontSize:12,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",padding:"10px"}}>Discard these sets</button>
+    </>)}
+  </div></div>);
+}
+
 function Summary(){
-  const {tab,setTab,data,active,setActive,setSess,summary,setSummary,startTimeRef,finishingRef,totSets,doneSets}=useApp();
+  const {tab,setTab,data,active,summary,setLogModal,clearWorkout,totSets,doneSets}=useApp();
   const pr=getProteinHitRate(data.nutritionLog);
   const lowProtein=pr&&pr.total>=3&&pr.rate<3/7;
   const fmtDur=(s:number)=>{const m=Math.floor(s/60);return m>0?`${m} min`:`${s}s`;};
@@ -556,7 +547,7 @@ function Summary(){
           {lowProtein?"Protein was low most days this week. A shake now = easy 30g — your muscles need it.":"Aim for ~30g protein within the next hour to support recovery."}
         </p>
       </div>
-      {/* Body Stats — read only, directs user to Stats tab */}
+      {/* Body Stats — "Log now" opens the log sheet right here */}
       <div style={{background:P.white,borderRadius:14,padding:"10px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div>
           <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>Body Stats</p>
@@ -564,9 +555,9 @@ function Summary(){
             {data.bodyLog.length?`Last logged ${Math.floor((Date.now()-new Date(data.bodyLog[data.bodyLog.length-1].date))/86400000)||0}d ago`:"No stats logged yet"}
           </p>
         </div>
-        <p style={{fontSize:10,color:P.roseMid,fontStyle:"italic"}}>log via Stats tab</p>
+        <button onClick={()=>setLogModal("Weight")} className="btnG" style={{fontSize:10,padding:"6px 14px",flexShrink:0}}>Log now</button>
       </div>
-      <button className="btnP" style={{flexShrink:0}} onClick={()=>{setSummary(null);setActive(null);setSess(null);startTimeRef.current=null;finishingRef.current=false;setTab("today");}}>BACK TO HOME</button>
+      <button className="btnP" style={{flexShrink:0}} onClick={()=>{clearWorkout();setTab("today");}}>BACK TO HOME</button>
     </div>
   </div>);
 }
@@ -611,7 +602,7 @@ function SwapModal(){
   const {setSess,swapModal,setSwapModal}=useApp();
   const[swapSelected,setSwapSelected]=useState(null);
   if(!swapModal)return null;
-  const doSwap=()=>{if(!swapSelected)return;setSess(prev=>({...prev,swapped:{...prev.swapped,[swapModal.id]:swapSelected}}));setSwapModal(null);};
+  const doSwap=()=>{if(!swapSelected)return;setSess(prev=>({...prev,lastActionAt:Date.now(),swapped:{...prev.swapped,[swapModal.id]:swapSelected}}));setSwapModal(null);};
   const close=()=>setSwapModal(null);
   return(<div className="mo" onClick={close}>
     <div className="ms sl" onClick={e=>e.stopPropagation()}>
@@ -1357,7 +1348,7 @@ function ImportModal(){
     {icon}
     <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Replace all data?</h3>
     <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{when?`Backup from ${when}: `:"Backup: "}{n} session{n!==1?"s":""}, {m} body entr{m!==1?"ies":"y"}. Everything currently in PeachFit is replaced.</p>
-    <button onClick={()=>{persist(d);close();}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESTORE BACKUP</button>
+    <button onClick={()=>{persist(migrate(d));close();}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESTORE BACKUP</button>
     <button onClick={close} className="btnG" style={{width:"100%"}}>CANCEL</button>
   </div></div>);
 }
@@ -1538,10 +1529,25 @@ export default function App(){
     const loaded={sessions:[],bodyLog:[],profile:{...DEFAULT_PROFILE},nutritionLog:[],...ld()};
     if(!loaded.profile)loaded.profile={...DEFAULT_PROFILE};
     if(!loaded.nutritionLog)loaded.nutritionLog=[];
-    return loaded;
+    const clean=migrate(loaded);
+    if(clean!==loaded)sv(clean);
+    return clean;
   });
-  const[active,setActive]=useState(null);
-  const[sess,setSess]=useState(null);
+  // A running workout survives reloads: under 3 h since the last action it reopens, older ones wait on Today
+  const[boot]=useState(()=>{
+    const live=loadLive();
+    const pl=live&&SESSIONS.find(s=>s.id===live.sessionId);
+    if(!live||!pl||live.finishedAt){if(live)clearLive();return{};}
+    const done=Object.values(live.comp||{}).filter(Boolean).length;
+    const idle=Date.now()-(live.lastActionAt||live.startedAt||0);
+    if(idle<3*3600000)return{resume:{pl,sess:live}};
+    if(done===0){clearLive();return{};}
+    return{stale:{pl,sess:live}};
+  });
+  const[active,setActive]=useState(()=>boot.resume?boot.resume.pl:null);
+  const[sess,setSess]=useState(()=>boot.resume?boot.resume.sess:null);
+  const[staleLive,setStaleLive]=useState(()=>boot.stale||null);
+  const[workoutSheet,setWorkoutSheet]=useState(null); // {kind:"leave",target}|{kind:"finish"}
   const[modal,setModal]=useState(null);
   const[summary,setSummary]=useState(null);
   const[swapModal,setSwapModal]=useState(null);
@@ -1564,8 +1570,13 @@ export default function App(){
     reader.readAsText(file);
   };
   const[planModal,setPlanModal]=useState(null); // session plan preview modal
-  const startTimeRef=useRef(null);
   const finishingRef=useRef(false);
+
+  // Save the running workout after every change; drop it once it's finished or closed
+  useEffect(()=>{
+    if(sess&&!sess.finishedAt)saveLive(sess);
+    else if(!staleLive)clearLive();
+  },[sess,staleLive]);
 
   const persist=d=>{setData(d);sv(d);};
 
@@ -1581,14 +1592,42 @@ export default function App(){
     persist({...data,bodyLog:newLog});
   };
 
+  // Builds the history record. After 30+ idle minutes the clock stops at the last set + 5 min.
+  const buildRecord=(pl,s,history)=>{
+    const now=Date.now();
+    const last=s.lastActionAt||now;
+    const end=now-last>30*60000?last+5*60000:now;
+    const duration=s.startedAt?Math.max(0,Math.floor((end-s.startedAt)/1000)):0;
+    const cal=kcal(pl.met,Math.max(1,Math.round(duration/60)));
+    const numericWeights={};
+    pl.exercises.forEach(ex=>{
+      if(!ex.bw){const used=s.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
+    });
+    const prs=pl.exercises.filter(ex=>!ex.bw&&numericWeights[ex.id]).filter(ex=>{const pr=getPR(ex,history);return!pr||numericWeights[ex.id]>pr;}).map(ex=>ex.name);
+    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:s.csets||{},swapped:s.swapped||{}};
+    return{rec,prs};
+  };
+
   const startSession=pl=>{
+    let history=data.sessions;
+    if(staleLive){ // starting fresh saves the unfinished workout first
+      history=[...history,buildRecord(staleLive.pl,staleLive.sess,history).rec];
+      persist({...data,sessions:history});setStaleLive(null);
+    }
     const initWeights={};
-    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,data.sessions,pl.id);});
-    startTimeRef.current=Date.now();finishingRef.current=false;
+    pl.exercises.forEach(ex=>{if(!ex.bw)initWeights[ex.id]=getWeight(ex,history,pl.id);});
+    const now=Date.now();
+    finishingRef.current=false;
     setActive(pl);
-    setSess({comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
+    setSess({sessionId:pl.id,startedAt:now,lastActionAt:now,comp:{},weights:initWeights,csets:{},currentExIdx:0,phase:"active",currentSet:0,swapped:{},_exLen:pl.exercises.length});
     setSummary(null);setTab("today");
   };
+  const finishStale=()=>{
+    if(!staleLive)return;
+    persist({...data,sessions:[...data.sessions,buildRecord(staleLive.pl,staleLive.sess,data.sessions).rec]});
+    clearLive();setStaleLive(null);
+  };
+  const discardStale=()=>{clearLive();setStaleLive(null);};
 
   const completeCurrentSet=(ex,ei)=>{
     setSess(prev=>{
@@ -1601,6 +1640,7 @@ export default function App(){
         weights[ex.id]=getWeight(ex,data.sessions,active?.id);
       }
       const csets={...prev.csets,[ex.id]:cnt};
+      prev={...prev,lastActionAt:Date.now()};
       const allDone=cnt>=ex.sets;
       if(ex.rest>0&&!allDone)return{...prev,comp,weights,csets,phase:"rest",nextSet:si+1,nextExIdx:ei,restEndsAt:Date.now()+ex.rest*1000,restTotal:ex.rest};
       if(allDone){
@@ -1615,9 +1655,10 @@ export default function App(){
     });
   };
 
-  const advanceAfterRest=()=>{
+  const advanceAfterRest=(byUser=false)=>{
     setSess(prev=>{
       if(!prev||prev.phase!=="rest")return prev;
+      if(byUser)prev={...prev,lastActionAt:Date.now()};
       const nextIdx=prev.nextExIdx??prev.currentExIdx;
       const exLen=prev._exLen??999;
       if(nextIdx>=exLen)return{...prev,phase:"done",restEndsAt:null};
@@ -1627,31 +1668,29 @@ export default function App(){
 
   const saveSession=()=>{
     if(!active||!sess)return;
-    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):0;
-    const mins=Math.max(1,Math.round(trueElapsed/60));
-    const cal=kcal(active.met,mins);
-    const numericWeights={};
-    active.exercises.forEach(ex=>{
-      if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
-    });
-    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:trueElapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
-    persist({...data,sessions:[...data.sessions,rec]});
+    persist({...data,sessions:[...data.sessions,buildRecord(active,sess,data.sessions).rec]});
   };
 
   const finishSession=()=>{
-    if(finishingRef.current)return;
+    if(finishingRef.current||!active||!sess)return;
     finishingRef.current=true;
-    const trueElapsed=startTimeRef.current?Math.floor((Date.now()-startTimeRef.current)/1000):0;
-    const mins=Math.max(1,Math.round(trueElapsed/60));
-    const cal=kcal(active.met,mins);
-    const numericWeights={};
-    active.exercises.forEach(ex=>{
-      if(!ex.bw){const used=sess.weights?.[ex.id];if(used!=null)numericWeights[ex.id]=used;}
-    });
-    const prs=active.exercises.filter(ex=>!ex.bw&&numericWeights[ex.id]).filter(ex=>{const pr=getPR(ex,data.sessions);return!pr||numericWeights[ex.id]>pr;}).map(ex=>ex.name);
-    const rec={date:new Date().toISOString(),sessionId:active.id,tag:active.tag,duration:trueElapsed,calories:cal,weights:numericWeights,comp:sess.csets,swapped:sess.swapped||{}};
+    const {rec,prs}=buildRecord(active,sess,data.sessions);
     persist({...data,sessions:[...data.sessions,rec]});
     setSummary({...rec,prs,csets:sess.csets});
+    setSess(prev=>prev?{...prev,finishedAt:Date.now()}:prev);   // saved — the nav won't ask again (bug 3)
+  };
+
+  const clearWorkout=()=>{finishingRef.current=false;setActive(null);setSess(null);setSummary(null);};
+  // FINISH: nothing done → just close; sets left → ask; all done → finish
+  const requestFinish=()=>{
+    if(doneSets===0){clearWorkout();setTab("today");return;}
+    if(doneSets<totSets){setWorkoutSheet({kind:"finish"});return;}
+    finishSession();
+  };
+  // Leaving mid-workout asks first when sets were done (Keep training · Save & leave · Discard)
+  const requestLeave=target=>{
+    if(doneSets>0){setWorkoutSheet({kind:"leave",target});return;}
+    clearWorkout();setTab(target);setLogModal(null);setProgressModal(null);setMeModal(null);
   };
 
   const totSets=active?active.exercises.reduce((a,e)=>a+e.sets,0):0;
@@ -1659,8 +1698,7 @@ export default function App(){
   const weekAgo=Date.now()-7*86400000;
   const thisWeekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
 
-  // ── TODAY ─────────────────────────────────────────────────────────────────
-  const ctx={tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,startTimeRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,totSets,doneSets,thisWeekSess};
+  const ctx={tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,requestFinish,requestLeave,clearWorkout,workoutSheet,setWorkoutSheet,staleLive,finishStale,discardStale,totSets,doneSets,thisWeekSess};
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return(<AppCtx.Provider value={ctx}>
@@ -1679,25 +1717,14 @@ export default function App(){
       {meModal==="clearData"&&<ClearModal/>}
       {meModal==="import"&&<ImportModal/>}
       {planModal&&<PlanModal/>}
+      {workoutSheet&&<WorkoutSheet/>}
       <input ref={importInputRef} type="file" accept=".json,application/json,text/plain" onChange={onImportFile} style={{display:"none"}}/>
       <nav className="nav">
         <div className="nav-icons">
         {[["today",IcHome,"Today"],["progress",IcStats,"Stats"],["me",IcMe,"Me"]].map(([t,Ic,lb])=>(
           <button key={t} className="nb" onClick={()=>{
-            // If session active and navigating away — protect data
-            if(active&&sess&&t!=="today"){
-              if(doneSets>0){
-                const choice=window.confirm(`You've done ${doneSets} set${doneSets!==1?"s":""} — save progress before leaving?`);
-                if(choice){
-                  saveSession();
-                  startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);setSummary(null);
-                } else {
-                  startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);
-                }
-              } else {
-                startTimeRef.current=null;finishingRef.current=false;setActive(null);setSess(null);
-              }
-            }
+            if(summary)clearWorkout();                       // already saved — just leave the summary
+            else if(active&&sess&&t!=="today"){requestLeave(t);return;}   // mid-workout: ask first
             setTab(t);setLogModal(null);setProgressModal(null);setMeModal(null);
           }}>
             <div style={{width:30,height:30,borderRadius:9,background:tab===t?P.roseLite:"transparent",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.18s"}}>
