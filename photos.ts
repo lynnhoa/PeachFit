@@ -32,7 +32,7 @@ const SAME_AS:Record<string,string>={};
 
 // The How-to sheet shows an edge-to-edge 16:10 window of each 4:5 photo, cut just above her head:
 // 0 = top of the photo, 100 = bottom.
-const FOCUS:Record<string,number>={"ab-crunch-machine":47,"back-extension":12,"bird-dog":81,"bulgarian-split-squat":25,"cable-kickback":0,"captains-chair":21,"cross-trainer":0,"donkey-kick":77,"dumbbell-rdl":22,"fire-hydrant":91,"glute-bridge":90,"glute-extension":37,"hip-abduction":9,"hip-thrust":41,"lat-pulldown":0,"lateral-raise":10,"one-arm-row":39,"plank":100,"reverse-crunch":90,"reverse-fly":76,"russian-twist":75,"seated-row":37,"side-plank":93,"single-leg-hip-thrust":98,"single-leg-rdl":45,"stomach-vacuum":1,"swimming":98};
+const FOCUS:Record<string,number>={"ab-crunch-machine":50,"back-extension":20,"bird-dog":81,"bulgarian-split-squat":84,"cable-kickback":40,"captains-chair":30,"cross-trainer":0,"donkey-kick":77,"dumbbell-rdl":24,"fire-hydrant":91,"glute-bridge":90,"glute-extension":37,"hip-abduction":44,"hip-thrust":41,"lat-pulldown":60,"lateral-raise":10,"one-arm-row":39,"plank":100,"reverse-crunch":90,"reverse-fly":76,"russian-twist":75,"seated-row":37,"side-plank":93,"single-leg-hip-thrust":84,"single-leg-rdl":45,"stomach-vacuum":1,"swimming":98};
 
 // Photographer credit shown under a photo (free stock photos don't require it, but it's kind)
 const CREDIT:Record<string,string>={};

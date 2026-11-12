@@ -661,7 +661,7 @@ function Modal(){
   const {modal,setModal}=useApp();
   if(!modal)return null;
   const Anim=A[modal.anim]||A.cd;
-  return(<div className="mo" onClick={()=>setModal(null)}>
+  return(<div className="mo" style={{zIndex:300}} onClick={()=>setModal(null)}>
     <div className="ms sl" onClick={e=>e.stopPropagation()}>
       {/* Handle bar */}
       <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 12px"}}/>
@@ -1600,7 +1600,7 @@ function Me(){
 }
 
 function PlanModal(){
-  const {data,planModal,setPlanModal,startSession,editProgramme,setExForm}=useApp();
+  const {data,planModal,setPlanModal,startSession,editProgramme,setExForm,setModal}=useApp();
   const[editing,setEditing]=useState(false);
   const[confirmDel,setConfirmDel]=useState(null);
   if(!planModal)return null;
@@ -1654,7 +1654,7 @@ function PlanModal(){
           const load=ex.bw?(ex.equip||"BW"):fmtLoad(cw,unitOf(ex),ex);
           return(<Fragment key={ex.id}>
           {head&&<p style={{padding:"9px 14px 5px",fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:pl.color,fontWeight:600,background:`${pl.color}10`,borderBottom:`1px solid ${P.roseLite}`}}>{ex.group}</p>}
-          <div onClick={editing?()=>setExForm({sessionId:pl.id,ex}):undefined} style={{display:"flex",alignItems:"center",padding:editing?"9px 10px 9px 14px":"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:editing?8:10,cursor:editing?"pointer":"default"}}>
+          <div onClick={editing?()=>setExForm({sessionId:pl.id,ex}):()=>setModal(ex)} style={{display:"flex",alignItems:"center",padding:editing?"9px 10px 9px 14px":"11px 10px 11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:editing?8:10,cursor:"pointer"}}>
             <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
@@ -1666,10 +1666,10 @@ function PlanModal(){
               {confirmDel===ex.id
                 ?<button onClick={e=>{e.stopPropagation();remove(ex.id);}} style={{height:30,borderRadius:9,border:"none",background:"#c0392b",color:"white",fontSize:10,fontWeight:600,padding:"0 9px",cursor:"pointer",letterSpacing:"0.06em",fontFamily:"'DM Sans'"}}>DELETE</button>
                 :ctl("Remove",()=>setConfirmDel(ex.id),false,true)}
-            </div>):(<div style={{textAlign:"right",flexShrink:0}}>
+            </div>):(<><div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
               <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{load}{isUp?" ↑":isDown?" ↓":""}</p>
-            </div>)}
+            </div><span aria-hidden="true" style={{color:P.rosePrimary,fontSize:18,lineHeight:1,flexShrink:0,marginLeft:-2}}>›</span></>)}
           </div></Fragment>);
         })}
       </div>
