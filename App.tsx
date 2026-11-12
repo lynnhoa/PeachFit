@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, createContext, useContext, Fragment } from "react";
 import { P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, FRESH_START_DAYS, COMEBACK_DAYS, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
@@ -40,7 +40,7 @@ const IcImport=({c=P.roseDark,s=16})=><svg width={s} height={s} viewBox="0 0 24 
 const IcSkip=({c=P.roseMid,s=13})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 6l6 6-6 6"/><path d="M13 6l6 6-6 6"/></svg>;
 
 // Session icon map
-const SessIcon={glutes:IcGlutes,core:IcCore,shape:IcShape};
+const SessIcon={glutes_c:IcCore,glutes:IcGlutes,shape:IcShape,home:IcHome,core:IcCore}; // core = old sessions in history
 
 // ── SVG EXERCISE ANIMATIONS ───────────────────────────────────────────────────
 const A={
@@ -127,12 +127,15 @@ const TopAsk=({ex,compact=false})=>{
   const {sess,setSess}=useApp();
   if(!progresses(ex)||sess?.swapped?.[ex.id])return null;
   const ans=sess?.top?.[ex.id];
+  // "12 reps", "15 reps per leg", "30 sec per side"
+  const r=String(ex.reps),timed=/\b(sec|min)\b/.test(r),per=(r.match(/\/(\w+)/)||[])[1];
+  const target=`${topReps(r)} ${timed?(/\bmin\b/.test(r)?"min":"sec"):"reps"}${per?` per ${per}`:""}`;
   const set=v=>setSess(p=>({...p,lastActionAt:Date.now(),top:{...(p.top||{}),[ex.id]:v}}));
   const btn=(v,label)=>{const on=ans===v;return(
     <button onClick={()=>set(v)} style={{flex:1,background:on?P.rosePrimary:"rgba(255,255,255,0.06)",border:`1.5px solid ${on?P.rosePrimary:"rgba(242,160,176,0.3)"}`,color:on?"white":P.roseHero,borderRadius:40,padding:"8px 10px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:on?600:400,WebkitAppearance:"none"}}>{label}</button>);};
   return(<div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:compact?"10px 14px":"12px 16px",textAlign:"center",marginBottom:compact?8:16,width:"100%",maxWidth:300}}>
-    <p style={{fontSize:compact?11:12,color:"white",fontWeight:500,marginBottom:2}}>{compact?ex.name:"Top of the range on every set?"}</p>
-    <p style={{fontSize:10,color:P.roseMid,marginBottom:8}}>{compact?`${topReps(ex.reps)} reps on every set?`:`${topReps(ex.reps)} reps on all ${ex.sets} sets of ${ex.name}`}</p>
+    <p style={{fontSize:compact?11:12,color:"white",fontWeight:500,marginBottom:2}}>{compact?ex.name:timed?"Full time on every set?":"Top of the range on every set?"}</p>
+    <p style={{fontSize:10,color:P.roseMid,marginBottom:8}}>{compact?`${target} on every set?`:`${target} on all ${ex.sets} sets of ${ex.name}`}</p>
     <div style={{display:"flex",gap:8}}>{btn(true,"Yes, all sets")}{btn(false,"Not yet")}</div>
     {ans===false&&<p style={{fontSize:9,color:P.roseMid,marginTop:6}}>Same weight next time — add a rep where you can.</p>}
   </div>);
@@ -144,8 +147,8 @@ function Today(){
   const lastSess=data.sessions[data.sessions.length-1];
   const daysSince=lastSess?Math.floor((Date.now()-new Date(lastSess.date))/86400000):null;
   const suggested=suggestSession(data.sessions);
-  const weekCounts={glutes:0,core:0,shape:0};
-  thisWeekSess.forEach(s=>{if(weekCounts[s.sessionId]!==undefined)weekCounts[s.sessionId]++;});
+  const weekCounts:Record<string,number>={};
+  thisWeekSess.forEach(s=>{weekCounts[s.sessionId]=(weekCounts[s.sessionId]||0)+1;});
   const todayProtein=getTodayProtein(data.nutritionLog);
   const logProtein=(hit)=>{
     const today=localDay();
@@ -220,7 +223,7 @@ function Today(){
       <div style={{display:"flex",flexDirection:"column",gap:10,flexShrink:0}}>
         {SESSIONS.map(pl=>{
           const SIcon=SessIcon[pl.id];
-          const isSuggested=pl.id===suggested.id;
+          const isSuggested=!!suggested&&pl.id===suggested.id; // null = rest day
           const doneThisWeek=weekCounts[pl.id]||0;
           const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
           const d=lastDone?Math.floor((Date.now()-new Date(lastDone.date).getTime())/86400000):null;
@@ -340,7 +343,7 @@ function Workout(){
         {nextIsNewEx&&setsCompletedForEx>=ex.sets&&<TopAsk ex={ex}/>}
         <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
           <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
-          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx),nextEx)}</p></>)
+          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?(nextEx.equip||"BW"):fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx),nextEx)}</p></>)
           :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":swappedTo?"Swap · not tracked":fmtLoad(cw,unit,ex)}</p></>)}
         </div>
         <button onClick={()=>advanceAfterRest(true)} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
@@ -429,7 +432,7 @@ function Workout(){
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>+</button>
           </div>
         )}
-        {!ex.bw&&!swappedTo&&sideNote(cw,ex)&&<p className="mono" style={{fontSize:13,color:P.roseHero,marginBottom:4}}>{sideNote(cw,ex)}</p>}
+        {(()=>{const n=swappedTo?null:ex.bw?(ex.equip!=="Bodyweight"?ex.equip:null):sideNote(cw,ex);return n?<p className="mono" style={{fontSize:13,color:P.roseHero,marginBottom:4}}>{n}</p>:null;})()}
         <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:6,letterSpacing:"0.06em",visibility:ex.bw||swappedTo?"hidden":"visible"}}>tap − + to adjust</p>
         <p className="mono" style={{fontSize:14,color:P.rosePrimary}}>{ex.sets} sets × {ex.reps}</p>
         {timedSecs(ex.reps)&&setsCompletedForEx<ex.sets&&<MoveTimer key={`${ex.id}-${currentSet}`} secs={timedSecs(ex.reps)}/>}
@@ -808,13 +811,13 @@ function Progress(){
       {/* PANEL 2 — This week + Rhythm */}
       {(()=>{
         const fourWeeksAgo=Date.now()-28*86400000;
-        const sessTypes=[["glutes","Day 1 · Wed",IcGlutes,P.rosePrimary],["shape","Day 2 · Fri",IcShape,P.accent]] as [string,string,any,string][];
+        const sessTypes=SESSIONS.map(s=>[s.id,s.short,SessIcon[s.id],s.color]) as [string,string,any,string][];
         const daysSinceLast=(id:string)=>{
           const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
           if(!last)return null;
           return Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
         };
-        const rhythm28=["glutes","shape"].map(id=>{
+        const rhythm28=SESSIONS.map(s=>s.id).map(id=>{
           const sess28=data.sessions.filter(s=>s.sessionId===id&&new Date(s.date).getTime()>fourWeeksAgo);
           return{id,count:sess28.length};
         });
@@ -840,7 +843,7 @@ function Progress(){
           {/* Rhythm divider */}
           <div style={{borderTop:`1px solid ${P.roseLite}`,paddingTop:6,flexShrink:0}}>
             {rhythm28.map(({id,count})=>{
-              const label=id==="glutes"?"Day 1":"Day 2";
+              const label=SESSIONS.find(s=>s.id===id)?.short||id;
               const dots=[...Array(4)].map((_,i)=>i<count);
               const d=daysSinceLast(id);
               const agoTxt=d===null?"never":d===0?"today":d===1?"yesterday":`${d}d ago`;
@@ -1083,10 +1086,7 @@ function ProgressModal(){
     const localWeekSess=data.sessions.filter(s=>new Date(s.date).getTime()>localWeekAgo);
     const localWeekTypes=new Set(localWeekSess.map(s=>s.sessionId));
 
-    const sessTypes=[
-      {id:"glutes", label:"Day 1 · Wed",Ic:IcGlutes,col:P.rosePrimary},
-      {id:"shape",  label:"Day 2 · Fri",Ic:IcShape, col:P.accent},
-    ];
+    const sessTypes=SESSIONS.map(s=>({id:s.id,label:s.short,Ic:SessIcon[s.id],col:s.color}));
     const daysSinceLast=(id:string):number|null=>{
       const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
       if(!last)return null;
@@ -1094,37 +1094,37 @@ function ProgressModal(){
     };
     const agoStr=(d:number|null):string=>d===null?"Never done":d===0?"Today":d===1?"Yesterday":`${d}d ago`;
 
-    // heatmap — 4 weeks × 7 days, typed explicitly to avoid index errors
-    type HCell={id:"glutes"|"core"|"shape"}|null;
+    // heatmap — 4 weeks × 7 days (first session of the day wins); old "core" sessions keep their own colour
+    const cellBg:Record<string,string>={core:P.roseMid,...Object.fromEntries(SESSIONS.map(s=>[s.id,s.color]))};
+    const cellTxt:Record<string,string>={core:"Co",...Object.fromEntries(SESSIONS.map(s=>[s.id,s.cell]))};
+    type HCell={id:string}|null;
     const hmap:HCell[][]=[[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null],[null,null,null,null,null,null,null]];
     const monday=t=>{const x=new Date(t);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime();};
     const thisMonday=monday(Date.now());
     const todayDow=(new Date().getDay()+6)%7;
     data.sessions.forEach(s=>{
       const sid=s.sessionId as string;
-      if(sid!=="glutes"&&sid!=="core"&&sid!=="shape")return;
+      if(!cellBg[sid])return;
       const wk=3-Math.round((thisMonday-monday(s.date))/(7*86400000));
       if(wk<0||wk>3)return;
       const dow=(new Date(s.date).getDay()+6)%7;
-      if(!hmap[wk][dow])hmap[wk][dow]={id:sid as "glutes"|"core"|"shape"};
+      if(!hmap[wk][dow])hmap[wk][dow]={id:sid};
     });
 
-    const cellBg:Record<"glutes"|"core"|"shape",string>={glutes:P.rosePrimary,core:P.roseDark,shape:P.accent};
-    const cellTxt:Record<"glutes"|"core"|"shape",string>={glutes:"A",core:"C",shape:"B"};
     const wkLabel=["3 wk ago","2 wk ago","Last wk","This wk"];
 
-    const counts28={
-      glutes:sess28.filter(s=>s.sessionId==="glutes").length,
-      core:sess28.filter(s=>s.sessionId==="core").length,
-      shape:sess28.filter(s=>s.sessionId==="shape").length,
-    };
+    const counts28:Record<string,number>={};
+    sess28.forEach(s=>{counts28[s.sessionId]=(counts28[s.sessionId]||0)+1;});
 
-    const weekG=localWeekTypes.has("glutes"),weekC=localWeekTypes.has("core"),weekS=localWeekTypes.has("shape");
+    const weekG=localWeekTypes.has("glutes"),weekS=localWeekTypes.has("shape");
+    const extraC=localWeekTypes.has("glutes_c"),extraH=localWeekTypes.has("home");
+    const extras=extraC&&extraH?"Monday and home":extraC?"Monday":extraH?"home":"";
     const coachWk=weekG&&weekS
-      ?"Both days done this week — this is exactly the pace that changes your body."
-      :weekG?"Day 1 done. Day 2 on Friday finishes the week."
-      :weekS?"Day 2 done. Day 1 on Wednesday starts the next week strong."
-      :"Nothing logged this week yet. One session is enough to start — pick any.";
+      ?`Wednesday and Friday both done${extras?` — plus ${extras}`:""}. This is exactly the pace that changes your body.`
+      :weekG?"Wednesday done. Friday finishes the main week."
+      :weekS?"Friday done. Wednesday is your anchor — keep it fixed."
+      :extras?`${extras==="home"?"Home workout":extras==="Monday"?"Monday":"Monday and home"} done — now lock in Wednesday and Friday, they drive your progress.`
+      :"Nothing logged this week yet. Wednesday and Friday are your fixed days.";
 
     return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
       <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
@@ -1156,8 +1156,7 @@ function ProgressModal(){
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {([
           {label:"Sessions",val:`${sess28.length}`,sub:"total"},
-          {label:"Day 1",val:`${counts28.glutes}×`,sub:"sessions"},
-          {label:"Day 2",val:`${counts28.shape}×`,sub:"sessions"},
+          ...SESSIONS.map(s=>({label:s.short,val:`${counts28[s.id]||0}×`,sub:s.optional?"optional":s.flexible?"flexible":"main"})),
         ] as {label:string,val:string,sub:string}[]).map(({label,val,sub})=>(
           <div key={label} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 2px 10px rgba(212,120,138,0.07)"}}>
             <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:20,color:P.roseDark,lineHeight:1,marginBottom:2}}>{val}</p>
@@ -1197,8 +1196,7 @@ function ProgressModal(){
         {/* Legend */}
         <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
           {([
-            {col:P.rosePrimary+"dd",lbl:"Day 1 (A)"},
-            {col:P.accent+"dd",lbl:"Day 2 (B)"},
+            ...SESSIONS.map(s=>({col:s.color+"dd",lbl:`${s.short} (${s.cell})`})),
             {col:P.roseLite+"99",lbl:"Rest"},
           ] as {col:string,lbl:string}[]).map(({col,lbl})=>(
             <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1225,15 +1223,16 @@ function ProgressModal(){
         name:"Glutes & shape",
         col:P.rosePrimary,
         goalLine:"Getting stronger here = more shape, more lift.",
-        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","kb_b","abd"],
+        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","kb_b","abd","ge_c","slht","slrdl"],
       },
       {
-        name:"Back, shoulders & abs",
+        name:"Back, shoulders & core",
         col:P.roseDark,
         goalLine:"Getting stronger here = better posture, a smaller-looking waist.",
-        ids:["lp","row","abm","lr"],
+        ids:["lp","row","dbr","rf","lr","abm","abm_b","sc_b","sc_c"],
       },
     ];
+    const dayOf=(id:string)=>SESSIONS.find(s=>s.exercises.some(e=>e.id===id))?.short||"";
 
     // Per exercise: derive the real story from session history
     const allExercises=SESSIONS.flatMap(s=>s.exercises);
@@ -1294,7 +1293,7 @@ function ProgressModal(){
 
                 {/* Exercise name + session count */}
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
-                  <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{ex.name}</p>
+                  <p style={{fontSize:13,color:P.roseDeep,fontWeight:500}}>{ex.name} <span style={{fontSize:10,color:P.roseMid,fontWeight:400}}>· {dayOf(ex.id)}</span></p>
                   <p style={{fontSize:9,color:P.roseMid}}>{sessionCount} session{sessionCount!==1?"s":""}</p>
                 </div>
 
@@ -1484,7 +1483,7 @@ function Me(){
           <IcEdit c={P.roseMid} s={14}/>
         </div>
         <div style={{display:"flex",gap:7}}>
-          {[["Sessions",`${data.sessions.length}`],["Last 7 days",`${thisWeekSess.length}/3`],(()=>{const pr=getProteinHitRate(data.nutritionLog);return["Protein",pr?`${pr.hits}/${pr.total}`:"—"];})()].map(([l,v])=>(
+          {[["Sessions",`${data.sessions.length}`],["Last 7 days",(()=>{const main=thisWeekSess.filter(s=>s.sessionId==="glutes"||s.sessionId==="shape").length,extra=thisWeekSess.length-main;return`${main}/2${extra?` +${extra}`:""}`;})()],(()=>{const pr=getProteinHitRate(data.nutritionLog);return["Protein",pr?`${pr.hits}/${pr.total}`:"—"];})()].map(([l,v])=>(
             <div key={l} style={{flex:1,background:"rgba(255,255,255,0.1)",borderRadius:10,padding:"8px 4px",display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
               <span className="mono" style={{fontSize:14,color:"white",lineHeight:1.1}}>{v}</span>
               <span style={{fontSize:9,color:P.roseMid,letterSpacing:"0.04em"}}>{l}</span>
@@ -1525,12 +1524,12 @@ function Me(){
             {SESSIONS.map(s=>{const Ic=SessIcon[s.id];return(
               <div key={s.id} style={{flex:1,borderRadius:10,padding:"9px 4px",textAlign:"center",border:`1.5px solid ${s.color}22`,background:`${s.color}11`}}>
                 <div style={{display:"flex",justifyContent:"center",marginBottom:3}}><Ic c={s.color} s={16}/></div>
-                <p style={{fontSize:9,color:s.color,fontWeight:500}}>{s.tag}</p>
+                <p style={{fontSize:9,color:s.color,fontWeight:500}}>{s.short.toUpperCase()}</p>
               </div>
             );})}
           </div>
           <div style={{display:"flex",gap:8}}>
-            {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["Wed + Fri","2 days a week"],[`${SESSIONS.length} sessions`,"A + B"]].map(([val,sub])=>(
+            {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["Wed + Fri","fixed main days"],["Mon · Home","optional extras"]].map(([val,sub])=>(
               <div key={val} style={{flex:1}}>
                 <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p>
                 <p style={{fontSize:11,color:P.roseMid,lineHeight:1.4,marginTop:2}}>{sub}</p>
@@ -1604,11 +1603,12 @@ function PlanModal(){
         </div>
         <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
-      <p style={{fontSize:12,color:P.roseMid,marginBottom:16,lineHeight:1.5}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+      <p style={{fontSize:12,color:P.roseMid,marginBottom:pl.info?6:16,lineHeight:1.5}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+      {pl.info&&<p style={{fontSize:11,color:P.roseDeep,marginBottom:14,lineHeight:1.55,fontStyle:"italic"}}>{pl.info}</p>}
       {/* Away warning */}
-      {ds>14&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
+      {ds>=COMEBACK_DAYS&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
         <span style={{fontSize:14,flexShrink:0}}>⚠️</span>
-        <p style={{fontSize:12,color:"#7a5c00",lineHeight:1.55}}>Away {ds} days — weights reduced 10% to ease you back in. They'll climb again from here.</p>
+        <p style={{fontSize:12,color:"#7a5c00",lineHeight:1.55}}>{ds>=FRESH_START_DAYS?`Away ${ds} days — fresh start: back to your starting weights. They'll climb again from here.`:`Away ${ds} days — one step lighter today to ease you back in.`}</p>
       </div>}
       {/* Exercise list */}
       <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:16}}>
@@ -1618,7 +1618,10 @@ function PlanModal(){
           const lastW=ex.bw?null:lastWeight(ex,lifts,pl.id);
           const isUp=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw>lastW;
           const isDown=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw<lastW;
-          return(<div key={ex.id} style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:10}}>
+          const head=ex.group&&ex.group!==pl.exercises[i-1]?.group;
+          return(<Fragment key={ex.id}>
+          {head&&<p style={{padding:"9px 14px 5px",fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:pl.color,fontWeight:600,background:`${pl.color}10`,borderBottom:`1px solid ${P.roseLite}`}}>{ex.group}</p>}
+          <div style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:10}}>
             <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
@@ -1626,9 +1629,9 @@ function PlanModal(){
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
-              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":fmtLoad(cw,unitOf(ex),ex)}{isUp?" ↑":isDown?" ↓":""}</p>
+              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?(ex.equip||"BW"):fmtLoad(cw,unitOf(ex),ex)}{isUp?" ↑":isDown?" ↓":""}</p>
             </div>
-          </div>);
+          </div></Fragment>);
         })}
       </div>
       <button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP">START {pl.name.toUpperCase()} →</button>

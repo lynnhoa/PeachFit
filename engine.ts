@@ -4,9 +4,10 @@ import { SESSIONS } from "./programme";
 // Units: kg (default), "level" (Stairmaster), "km/h" (Incline Walk)
 export const unitOf=ex=>ex.unit||"kg";
 export function roundLoad(v,unit="kg"){return unit==="level"?Math.round(v):unit==="km/h"?Math.round(v*2)/2:Math.round(v*4)/4;}
-// Per-side plate load for a barbell exercise ("20 kg/side"), per-hand label for dumbbells ("per hand"), else null
-export const sideNote=(v,ex)=>{if(!ex||typeof v!=="number")return null;if(ex.bar)return`${Math.max(0,roundLoad((v-ex.bar)/2))} kg/side`;if(ex.per)return`per ${ex.per}`;return null;};
-export function fmtLoad(v,unit="kg",ex=null){if(v==null||v==="")return"—";if(v==="BW")return"BW";if(unit==="level")return`Level ${v}`;if(unit==="km/h")return`${v} km/h`;if(ex?.bar)return`${v} kg (${sideNote(v,ex)})`;if(ex?.per)return`${v} kg/${ex.per}`;return`${v} kg`;}
+// Per-side plate load for a barbell exercise ("20 kg/side"), "per hand"/"per arm" for dumbbells,
+// how a single weight is held ("one hand"), else null
+export const sideNote=(v,ex)=>{if(!ex||typeof v!=="number")return null;if(ex.bar)return`${Math.max(0,roundLoad((v-ex.bar)/2))} kg/side`;if(ex.per)return`per ${ex.per}`;if(ex.note)return ex.note;return null;};
+export function fmtLoad(v,unit="kg",ex=null){if(v==null||v==="")return"—";if(v==="BW")return"BW";if(unit==="level")return`Level ${v}`;if(unit==="km/h")return`${v} km/h`;if(ex?.bar)return`${v} kg (${sideNote(v,ex)})`;if(ex?.per)return`${v} kg/${ex.per}`;if(ex?.note)return`${v} kg (${ex.note})`;return`${v} kg`;}
 
 // An exercise counts only when at least one set was done and it wasn't swapped for something else
 export const performed=(s,id)=>(Number(s.comp?.[id])||0)>0&&!(s.swapped&&s.swapped[id])&&s.weights&&s.weights[id]!=null;
@@ -104,12 +105,8 @@ export function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
   const weekAgo=Date.now()-7*86400000;
   const thisWeek=sessions.filter(s=>new Date(s.date)>weekAgo);
   if(daysSince>=7)return`It's been ${daysSince} days since your last session — your body is ready. Pick any session and go.`;
+  if(daysSince>0){const line=planLine(sessions);if(line)return line;}
   if(thisWeek.length>=2)return`Strong 7 days — ${thisWeek.length} sessions done. You're building the habit.`;
-  const lastType=SESSIONS.find(s=>s.id===lastSession.sessionId);
-  if(lastType){
-    const next=suggestSession(sessions);
-    if(next&&next.id!==lastType.id)return`Last: ${lastType.name}. Try ${next.name} today for full coverage.`;
-  }
   return daysSince===0?"Today is a great day to train.":daysSince===1?"Yesterday you trained — rest or go again.":`Last session was ${daysSince} days ago — your body is ready.`;
 }
 export function getETA(sessions,profile,bodyLog=[]){
@@ -186,18 +183,36 @@ export function getMilestones(sessions,bodyLog,profile={}){
   if(sessions.length>=10)ms.push({id:"s10",icon:"sessions",title:"10 sessions complete",sub:"You showed up 10 times. That's the whole game."});
   if(sessions.length>=25)ms.push({id:"s25",icon:"sessions",title:"25 sessions complete",sub:"25 sessions. You're not trying it anymore — you're doing it."});
   const types=new Set(sessions.filter(s=>new Date(s.date)>Date.now()-7*86400000).map(s=>s.sessionId));
-  if(types.has("glutes")&&types.has("shape"))ms.push({id:"full2",icon:"star",title:"Full week — both days",sub:"Day 1 and Day 2 done in one week. That's the whole plan."});
+  if(types.has("glutes")&&types.has("shape"))ms.push({id:"full2",icon:"star",title:"Full week — Wednesday + Friday",sub:"Both main days done in one week. Monday and home are the bonus."});
   return ms.reverse();
 }
 
 // ── SESSION SUGGESTION — one rule for the Today badge and the banner ─────────
-// The session done longest ago (never done first) — Day 1 and Day 2 alternate.
-export function suggestSession(sessions){
-  return SESSIONS.reduce((a,s)=>{
-    const lastA=sessions.filter(x=>x.sessionId===a.id).slice(-1)[0];
-    const lastS=sessions.filter(x=>x.sessionId===s.id).slice(-1)[0];
-    const tA=lastA?new Date(lastA.date).getTime():0;
-    const tS=lastS?new Date(lastS.date).getTime():0;
-    return tS<tA?s:a;
-  },SESSIONS[0]);
+// Wed → Glutes A and Fri → Glutes B (fixed). Mon → Glutes C (optional gym), unless home was done instead.
+// Tue/Thu → Home, once a week; after a Monday gym session it waits for Thursday.
+// Sat/Sun → catch up a Wednesday or Friday session missed this week. null = rest day.
+export const weekStart=(d=new Date())=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return x.getTime();};
+export const weekdayIdx=(d=new Date())=>(d.getDay()+6)%7; // 0 = Monday … 6 = Sunday
+export function suggestSession(sessions,now=new Date()){
+  const get=id=>SESSIONS.find(s=>s.id===id)||null;
+  const ws=weekStart(now);
+  const doneThisWeek=id=>sessions.some(s=>s.sessionId===id&&new Date(s.date).getTime()>=ws);
+  switch(weekdayIdx(now)){
+    case 0:return doneThisWeek("home")?null:get("glutes_c");
+    case 1:return doneThisWeek("glutes_c")||doneThisWeek("home")?null:get("home");
+    case 2:return get("glutes");
+    case 3:return doneThisWeek("home")?null:get("home");
+    case 4:return get("shape");
+    default:return !doneThisWeek("glutes")?get("glutes"):!doneThisWeek("shape")?get("shape"):null;
+  }
+}
+// One line for the banner: what today is in the plan
+export function planLine(sessions,now=new Date()){
+  const next=suggestSession(sessions,now);
+  const dow=weekdayIdx(now);
+  if(!next)return dow>=5?"Wednesday and Friday are done — rest, you earned it.":`Rest day. Next main session: ${dow<2?"Wednesday":"Friday"}.`;
+  if(next.id==="glutes_c")return`Monday: ${next.name} — optional. Short on time? Do the home workout instead.`;
+  if(next.id==="home")return"Home workout today — about 30 minutes, no gym needed.";
+  if(dow>=5)return`You missed ${next.id==="glutes"?"Wednesday":"Friday"} this week — catch up with ${next.name} today.`;
+  return`${next.day} = ${next.name}. Your fixed main day.`;
 }
