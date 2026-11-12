@@ -143,7 +143,7 @@ export const DEFAULT_SESSIONS=[
      swaps:[{name:"Dead Bug",note:"On your back"},{name:"Superman Hold",note:"Face down, arms and legs up"},{name:"Glute Bridge March",note:"Bridge, lift one foot at a time"}]}),
     home("h_swim",{name:"Swimming",group:"Back",muscle:"Lower Back + Glutes + Shoulders",sets:3,reps:"20–30 sec",equip:"Mat",anim:"pl",
      tip:"Small, quick flutters — keep your neck long and look down at the mat.",cue:"Lift arms and legs a few centimetres off the mat. Flutter opposite arm and leg up and down, like swimming. Keep breathing.",start:"Lie face down on the mat, arms stretched forward, legs long.",dont:"Don't crank your head up or arch hard — lift from the glutes and upper back.",
-     swaps:[{name:"Superman Hold",note:"Same position, hold still"},{name:"Bird Dog",note:"On all fours, gentler"},{name:"Prone Y-T-W Raise",note:"Arms only, legs stay down"}]}),
+     swaps:[{name:"Superman Hold",note:"Same position, hold still"},{name:"Bird Dog",note:"On all fours, gentler"},{name:"Reverse Snow Angel",note:"Face down, arms sweep from hips to overhead"}]}),
   ]},
 ];
 

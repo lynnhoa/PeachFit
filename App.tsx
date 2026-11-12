@@ -675,8 +675,8 @@ function Modal(){
       </div>
       {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
       {(()=>{const photo=photoFor(modal);return photo
-        ?<figure style={{margin:"10px 0 10px"}}>
-          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 3",objectFit:"cover",objectPosition:`50% ${photo.pos}%`,borderRadius:14,background:P.bg}}/>
+        ?<figure style={{margin:"10px -20px"}}>{/* edge to edge: the sheet has 20px side padding */}
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"16 / 10",objectFit:"cover",objectPosition:`50% ${photo.pos}%`,background:P.bg}}/>
           {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
         </figure>
         :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}

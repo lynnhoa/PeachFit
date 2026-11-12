@@ -24,15 +24,15 @@ export const MOVEMENT:Record<string,string>={
   rt_b:"russian-twist",rt_c:"russian-twist",
   lp:"lat-pulldown",row:"seated-row",dbr:"one-arm-row",rf:"reverse-fly",lr:"lateral-raise",
   h_gb:"glute-bridge",h_dk:"donkey-kick",h_fh:"fire-hydrant",h_rc:"reverse-crunch",
-  h_sp:"side-plank",h_vac:"stomach-vacuum",h_bd:"bird-dog",h_swim:"swimming",h_ytw:"prone-ytw",
+  h_sp:"side-plank",h_vac:"stomach-vacuum",h_bd:"bird-dog",h_swim:"swimming",
 };
 
 // Movements that use another movement's photo (none right now — every movement has its own)
 const SAME_AS:Record<string,string>={};
 
-// The How-to sheet shows a full-width 4:3 window of each 4:5 photo, cut just above her head:
+// The How-to sheet shows an edge-to-edge 16:10 window of each 4:5 photo, cut just above her head:
 // 0 = top of the photo, 100 = bottom.
-const FOCUS:Record<string,number>={"ab-crunch-machine":54,"back-extension":10,"bird-dog":96,"bulgarian-split-squat":27,"cable-kickback":0,"captains-chair":22,"cross-trainer":0,"donkey-kick":85,"dumbbell-rdl":23,"fire-hydrant":100,"glute-bridge":100,"glute-extension":42,"hip-abduction":6,"hip-thrust":46,"lat-pulldown":0,"lateral-raise":8,"one-arm-row":44,"plank":100,"reverse-crunch":100,"reverse-fly":90,"russian-twist":89,"seated-row":41,"side-plank":100,"single-leg-hip-thrust":100,"single-leg-rdl":51,"stomach-vacuum":0,"swimming":100};
+const FOCUS:Record<string,number>={"ab-crunch-machine":47,"back-extension":12,"bird-dog":81,"bulgarian-split-squat":25,"cable-kickback":0,"captains-chair":21,"cross-trainer":0,"donkey-kick":77,"dumbbell-rdl":22,"fire-hydrant":91,"glute-bridge":90,"glute-extension":37,"hip-abduction":9,"hip-thrust":41,"lat-pulldown":0,"lateral-raise":10,"one-arm-row":39,"plank":100,"reverse-crunch":90,"reverse-fly":76,"russian-twist":75,"seated-row":37,"side-plank":93,"single-leg-hip-thrust":98,"single-leg-rdl":45,"stomach-vacuum":1,"swimming":98};
 
 // Photographer credit shown under a photo (free stock photos don't require it, but it's kind)
 const CREDIT:Record<string,string>={};
