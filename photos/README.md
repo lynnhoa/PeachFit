@@ -5,8 +5,10 @@ movement (`.jpg`, `.png` or `.webp`, 4:3, 640 × 480 — all photos the same siz
 that has that exercise — no code change. Movements without a photo keep their drawing. The list lives in
 `photos.ts` (`MOVEMENT`); `SAME_AS` lets a movement reuse another's photo; a credit can go in `CREDIT`.
 
-The current photos were cut from the "Gym Plan – 3 Days" poster (one tile per exercise, label removed),
-enlarged to 640 × 480; tall and wide tiles sit whole on a blurred copy of themselves. ✓ = has a photo.
+The current photos were cut from the two "Gym Plan" posters (one tile per exercise, label removed),
+enlarged to 640 × 480; tall and wide tiles sit whole on a blurred copy of themselves. One-arm row,
+reverse fly, lateral raise and seated row come from the second poster, the rest from the first.
+✓ = has a photo.
 
 | File name | Exercise | Days | Photo |
 |---|---|---|---|
@@ -26,8 +28,8 @@ enlarged to 640 × 480; tall and wide tiles sit whole on a blurred copy of thems
 | `suitcase-carry` | Suitcase Carry | Mon, Fri | ✓ |
 | `lat-pulldown` | Lat Pulldown | Wed | drawing |
 | `seated-row` | Seated Row Machine | Fri | ✓ |
-| `one-arm-row` | One-Arm Dumbbell Row | Mon | drawing |
-| `reverse-fly` | Seated Reverse Fly | Mon | drawing |
+| `one-arm-row` | One-Arm Dumbbell Row | Mon | ✓ |
+| `reverse-fly` | Seated Reverse Fly | Mon | ✓ |
 | `lateral-raise` | Dumbbell Lateral Raise | Mon | ✓ |
 | `glute-bridge` | Glute Bridge (2-sec squeeze) | Home | ✓ |
 | `donkey-kick` | Donkey Kick | Home | ✓ |
