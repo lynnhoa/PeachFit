@@ -1,7 +1,7 @@
 // ── EXERCISE PHOTOS ──────────────────────────────────────────────────────────
 // A photo at the top of the How-to sheet instead of the drawing.
-// Add one: put a picture in photos/ named after the movement (e.g. photos/plank.jpg — 4:3, 640×480)
-// and it shows on every day that has that exercise. No code change needed.
+// Add one: put a picture in photos/ named after the movement (e.g. photos/plank.jpg — portrait 4:5,
+// 800×1000) and it shows on every day that has that exercise. No code change needed.
 // Exercises without a photo keep their drawing. Photos are bundled with the app (work offline).
 
 // every photo file in photos/ → its URL in the build
@@ -24,11 +24,11 @@ export const MOVEMENT:Record<string,string>={
   rt_b:"russian-twist",rt_c:"russian-twist",
   lp:"lat-pulldown",row:"seated-row",dbr:"one-arm-row",rf:"reverse-fly",lr:"lateral-raise",
   h_gb:"glute-bridge",h_dk:"donkey-kick",h_fh:"fire-hydrant",h_rc:"reverse-crunch",
-  h_sp:"side-plank",h_vac:"stomach-vacuum",h_bd:"bird-dog",h_ytw:"prone-ytw",
+  h_sp:"side-plank",h_vac:"stomach-vacuum",h_bd:"bird-dog",h_swim:"swimming",h_ytw:"prone-ytw",
 };
 
-// Movements that use another movement's photo (same bench, same motion)
-const SAME_AS:Record<string,string>={"back-extension":"glute-extension"};
+// Movements that use another movement's photo (none right now — every movement has its own)
+const SAME_AS:Record<string,string>={};
 
 // Photographer credit shown under a photo (free stock photos don't require it, but it's kind)
 const CREDIT:Record<string,string>={};

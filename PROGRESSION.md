@@ -79,7 +79,7 @@ Barbell weights assume a 20 kg bar. Each day tracks its own weights.
 | Side plank | 3 × 20–30 sec/side | Mat |
 | Stomach vacuum | 3 × 20–30 sec | None |
 | Bird dog, 3-second hold | 3 × 8/side | Mat |
-| Prone Y-T-W raise | 2 × 8 each | Mat |
+| Swimming (face down, flutter arms + legs) | 3 × 20–30 sec | Mat |
 
 Home moves are bodyweight: make them harder with more reps, longer holds, slower tempo or a stronger band.
 

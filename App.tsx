@@ -675,8 +675,8 @@ function Modal(){
       </div>
       {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
       {(()=>{const photo=photoFor(modal);return photo
-        ?<figure style={{margin:"14px 0"}}>
-          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 3",objectFit:"cover",borderRadius:12,background:P.bg}}/>
+        ?<figure style={{margin:"14px auto",width:"68%",maxWidth:300}}>
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 5",objectFit:"cover",borderRadius:14,background:P.bg}}/>
           {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
         </figure>
         :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}

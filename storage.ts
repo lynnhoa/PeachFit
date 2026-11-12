@@ -29,7 +29,7 @@ export function idFrom(str:string){
 export const workoutId=(date:string,sessionId:string)=>idFrom(`w|${date}|${sessionId}`);
 export const bodyId=(date:string)=>idFrom(`b|${date}`);
 
-export const SCHEMA=6;
+export const SCHEMA=7;
 export function migrate(d){
   if((d.schema||0)>=SCHEMA)return d;
   let out=d;
@@ -58,8 +58,12 @@ export function migrate(d){
     schema:5};
   // ── schema 6: Suitcase Carry → Dumbbell Russian Twist (Mon + Fri), in the saved plan too ──
   const twist=DEFAULT_SESSIONS.flatMap(s=>s.exercises).find(e=>e.id==="rt_b");
-  out={...out,schema:SCHEMA,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
+  if((out.schema||0)<6)out={...out,schema:6,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
     e.id==="sc_b"||e.id==="sc_c"?{...clonePlan(twist),id:e.id==="sc_b"?"rt_b":"rt_c"}:e)}))};
+  // ── schema 7: Prone Y-T-W Raise → Swimming (Home), in the saved plan too ──
+  const swim=DEFAULT_SESSIONS.flatMap(s=>s.exercises).find(e=>e.id==="h_swim");
+  out={...out,schema:SCHEMA,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
+    e.id==="h_ytw"?clonePlan(swim):e)}))};
   return out;
 }
 
