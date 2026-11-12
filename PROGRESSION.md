@@ -86,6 +86,12 @@ Home moves are bodyweight: make them harder with more reps, longer holds, slower
 If a starting weight is too light or too heavy (you can't stay in the rep range), adjust with − / + in the
 workout: the app continues from what you actually lift.
 
+**Changing the plan:** open a day on Today → **EDIT**. Tap an exercise to change it (name, section, sets, reps,
+start weight, step, sessions before it goes up, rest, barbell / per hand / one hand, equipment, tip),
+↑ ↓ to reorder, ✕ to remove, **+ ADD EXERCISE** for a new one. Workouts already logged are kept.
+**Me → Restore the default plan** goes back to the plan above. With sync on, the plan is the same on every
+phone (see supabase/README.md).
+
 ## Progressive overload — how the app decides
 
 1. **Reps first:** stay at a weight and work up through the rep range (e.g. hip thrust 8 → 12 reps).

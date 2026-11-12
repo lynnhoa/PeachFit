@@ -4,7 +4,7 @@ import { P } from "./theme";
 // Week: Wednesday Glutes A + Friday Glutes B are the fixed main days.
 //       Monday Glutes C is an optional gym day. Home is flexible: instead of the Monday gym, or Tue/Thu
 //       (after a Monday gym session → Thursday). Which one is suggested when: engine.suggestSession.
-// Starting weights + progression rules: PROGRESSION.md
+// Starting weights + progression rules: PROGRESSION.md · Editing the plan in the app: PlanModal/ExerciseForm in App.tsx
 //
 // Exercise fields
 //   group      section in the plan: Warm-up, Glutes, Core, Back, Shoulders
@@ -48,7 +48,9 @@ const warmUp=sfx=>[ex(`ct_${sfx}`,T.crossTrainer),ex(`bx_${sfx}`,T.backExtWarmup
 const HOME_REST=40;
 const home=(id,o)=>({id,kg:0,step:0,freq:0,bw:true,rest:HOME_REST,...o});
 
-export const SESSIONS=[
+// The built-in plan. The plan in use (SESSIONS below) is the saved copy, which can be edited in the app
+// and is synced to Supabase; "Restore default plan" goes back to this one.
+export const DEFAULT_SESSIONS=[
   // ── MONDAY · optional gym ──────────────────────────────────────────────────
   {id:"glutes_c",day:"Monday · optional",short:"Mon",cell:"C",optional:true,name:"Glutes C + Core + Back + Shoulders",tag:"MON · OPTIONAL",info:"Optional gym day. No time? Do the home workout instead.",color:P.roseDark,duration:60,met:4.0,
    exercises:[
@@ -144,3 +146,11 @@ export const SESSIONS=[
      swaps:[{name:"Band Pull-Apart",note:"Standing, band"},{name:"Superman Hold",note:"Face down, hold"},{name:"Reverse Fly (light dumbbells)",note:"Bent over or seated"}]}),
   ]},
 ];
+
+export const clonePlan=(p:any)=>JSON.parse(JSON.stringify(p));
+// The plan in use. Replaced in place (applyProgramme) so every module that imports it sees the current plan.
+export const SESSIONS:any[]=clonePlan(DEFAULT_SESSIONS);
+export function applyProgramme(list:any){
+  const next=Array.isArray(list)&&list.length?list:clonePlan(DEFAULT_SESSIONS);
+  if(next!==SESSIONS)SESSIONS.splice(0,SESSIONS.length,...next);
+}

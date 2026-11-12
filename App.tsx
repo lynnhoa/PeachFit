@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, createContext, useContext, Fragment } from "react";
 import { P } from "./theme";
-import { SESSIONS } from "./programme";
+import { SESSIONS, DEFAULT_SESSIONS, applyProgramme, clonePlan } from "./programme";
+import { cloud } from "./cloud";
 import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, FRESH_START_DAYS, COMEBACK_DAYS, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
-import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
+import { APP_VERSION, DEFAULT_PROFILE, SCHEMA, workoutId, bodyId, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
 // Each icon is a React component: <IcHome c="#d4788a" s={22}/>
@@ -80,6 +81,10 @@ html,body{height:100%;overflow:hidden;background:${P.white};}
 .tag{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;padding:3px 10px;border-radius:20px;display:inline-block;font-weight:500;}
 .btnP{background:${P.roseDark};color:white;border:none;border-radius:40px;padding:14px 28px;font-size:13px;font-weight:500;letter-spacing:0.08em;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%;transition:opacity 0.15s;-webkit-appearance:none;}
 .btnP:active{opacity:0.82;}
+.fld{width:100%;border:1.5px solid ${P.roseLite};background:${P.bg};border-radius:12px;padding:10px 12px;font-size:16px;color:${P.roseDeep};font-family:'DM Sans',sans-serif;outline:none;-webkit-appearance:none;appearance:none;}
+.fld:focus{border-color:${P.roseDark};background:white;}
+select.fld{background-image:linear-gradient(45deg,transparent 50%,${P.roseMid} 50%),linear-gradient(135deg,${P.roseMid} 50%,transparent 50%);background-position:calc(100% - 19px) 52%,calc(100% - 14px) 52%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:34px;}
+.lbl{font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:${P.roseMid};margin-bottom:5px;font-weight:500;}
 .btnG{background:none;border:1.5px solid ${P.rosePrimary};color:${P.roseDark};border-radius:40px;padding:9px 18px;font-size:12px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;-webkit-appearance:none;}
 .nav{flex-shrink:0;background:white;border-top:1px solid ${P.roseLite};display:flex;flex-direction:column;z-index:100;padding-bottom:max(6px,min(env(safe-area-inset-bottom,0px),8px));}
 .nav-icons{display:flex;align-items:flex-start;justify-content:space-around;min-height:48px;width:100%;padding:8px 4px 0;}
@@ -445,7 +450,7 @@ function Workout(){
       {/* Tip — fixed 3-line min-height so variable text length never shifts buttons below */}
       <div style={{background:"rgba(255,255,255,0.05)",borderRadius:12,padding:"10px 14px",marginBottom:14,borderLeft:`2px solid ${P.rosePrimary}`,minHeight:66}}>
         <p style={{fontSize:9,color:P.roseMid,letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:3}}>Tip</p>
-        <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",lineHeight:1.6,fontStyle:"italic"}}>{ex.tip}</p>
+        <p style={{fontSize:11,color:"rgba(255,255,255,0.7)",lineHeight:1.6,fontStyle:"italic"}}>{ex.tip||ex.cue||"Slow, controlled reps — quality over weight."}</p>
       </div>
       {/* CTA — unified wrapper div keeps button zone fixed height so secondary row never jumps */}
       <div style={{marginBottom:10,height:52,flexShrink:0}}>
@@ -670,7 +675,7 @@ function Modal(){
       {/* Animation */}
       <div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>
       {/* Instruction rows */}
-      {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].map(([lb,ct,Ic,isTip])=>(
+      {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].filter(r=>r[1]).map(([lb,ct,Ic,isTip])=>(
         <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
           <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
             <Ic c={P.roseDark} s={13}/>
@@ -867,7 +872,7 @@ function Progress(){
           <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength progress</p>
           <span style={{fontSize:10,color:P.roseMid}}>tap for all</span>
         </div>
-        {[{id:"ht_a",name:"Hip Thrust A"},{id:"lp",name:"Lat Pulldown"},{id:"ht_b",name:"Hip Thrust B"}].map((ex)=>{
+        {strengthPicks().map((ex)=>{
           const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
           const lifts=sinceReset(data);
           const pr=allEx?getPR(allEx,lifts):null;
@@ -1218,18 +1223,21 @@ function ProgressModal(){
 
   if(progressModal==="strength"){
     // Two goal-based groups — connects weights to what Lynn actually cares about
+    // Exercises with weight progression, main days first; glutes vs the rest
+    const planOrder=[...SESSIONS].sort((x,y)=>(x.optional||x.flexible?1:0)-(y.optional||y.flexible?1:0));
+    const weightedEx=planOrder.flatMap(s=>s.exercises).filter(e=>!e.bw&&e.step>0&&(e.unit||"kg")==="kg");
     const goalGroups=[
       {
         name:"Glutes & shape",
         col:P.rosePrimary,
         goalLine:"Getting stronger here = more shape, more lift.",
-        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","kb_b","abd","ge_c","slht","slrdl"],
+        ids:weightedEx.filter(e=>e.group==="Glutes").map(e=>e.id),
       },
       {
         name:"Back, shoulders & core",
         col:P.roseDark,
         goalLine:"Getting stronger here = better posture, a smaller-looking waist.",
-        ids:["lp","row","dbr","rf","lr","abm","abm_b","sc_b","sc_c"],
+        ids:weightedEx.filter(e=>e.group!=="Glutes").map(e=>e.id),
       },
     ];
     const dayOf=(id:string)=>SESSIONS.find(s=>s.exercises.some(e=>e.id===id))?.short||"";
@@ -1434,10 +1442,10 @@ function ClearModal(){
     <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
     <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:"#fff0f2",border:"1.5px solid #ffc8cd",display:"flex",alignItems:"center",justifyContent:"center"}}><IcTrash c="#c0392b" s={20}/></div></div>
     <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>{step===1?"Clear all data?":"Are you sure?"}</h3>
-    <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{step===1?"Permanently deletes all sessions, body logs and progress. Cannot be undone.":"This is your final confirmation. Everything will be erased."}</p>
+    <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{step===1?`Permanently deletes all sessions, body logs and progress${cloud.getStatus().linked?" — on all your synced phones":""}. Your plan is kept. Cannot be undone.`:"This is your final confirmation. Everything will be erased."}</p>
     {step===1
       ?<button onClick={()=>setStep(2)} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>I UNDERSTAND — CLEAR DATA</button>
-      :<button onClick={()=>{persist({sessions:[],bodyLog:[],profile:{...DEFAULT_PROFILE},nutritionLog:[],schema:4});setMeModal(null);}} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, DELETE EVERYTHING</button>}
+      :<button onClick={()=>{persist({sessions:[],bodyLog:[],profile:{...DEFAULT_PROFILE},nutritionLog:[],schema:SCHEMA,programme:data.programme});setMeModal(null);}} style={{background:"#c0392b",color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, DELETE EVERYTHING</button>}
     <button onClick={()=>setMeModal(null)} className="btnG" style={{width:"100%"}}>CANCEL</button>
   </div></div>);
 }
@@ -1462,7 +1470,7 @@ function ImportModal(){
     {icon}
     <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Replace all data?</h3>
     <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>{when?`Backup from ${when}: `:"Backup: "}{n} session{n!==1?"s":""}, {m} body entr{m!==1?"ies":"y"}. Everything currently in PeachFit is replaced.</p>
-    <button onClick={()=>{persist(migrate(d));close();}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESTORE BACKUP</button>
+    <button onClick={()=>{persist(migrate({...d,programme:d.programme&&d.programme.length?d.programme:data.programme}));close();}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>YES, RESTORE BACKUP</button>
     <button onClick={close} className="btnG" style={{width:"100%"}}>CANCEL</button>
   </div></div>);
 }
@@ -1536,7 +1544,12 @@ function Me(){
               </div>
             ))}
           </div>
+          <p style={{fontSize:10,color:P.roseMid,lineHeight:1.5,marginTop:10}}>To add, change or remove exercises: open a day on Today and tap <b style={{color:P.roseDark}}>EDIT</b>.</p>
+          <button onClick={()=>setMeModal("restorePlan")} style={{background:"none",border:"none",color:P.roseDark,fontSize:11,textDecoration:"underline",cursor:"pointer",padding:"6px 0 0",textAlign:"left",fontFamily:"'DM Sans'"}}>Restore the default plan</button>
         </div>
+
+        {/* PANEL — Sync */}
+        <SyncPanel/>
 
         {/* PANEL 3 — Data */}
         <div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flex:"1 1 0",display:"flex",flexDirection:"column",justifyContent:"center"}}>
@@ -1581,12 +1594,19 @@ function Me(){
 }
 
 function PlanModal(){
-  const {data,planModal,setPlanModal,startSession}=useApp();
+  const {data,planModal,setPlanModal,startSession,editProgramme,setExForm}=useApp();
+  const[editing,setEditing]=useState(false);
+  const[confirmDel,setConfirmDel]=useState(null);
   if(!planModal)return null;
-  const pl=planModal;
-  const SIcon=SessIcon[pl.id];
+  const pl=SESSIONS.find(s=>s.id===planModal.id)||planModal; // always the current plan (it can be edited)
+  const SIcon=SessIcon[pl.id]||IcGlutes;
   const lastDone=data.sessions.filter(s=>s.sessionId===pl.id).slice(-1)[0];
   const ds=lastDone?Math.floor((Date.now()-new Date(lastDone.date))/86400000):0;
+  const inDay=(prog,fn)=>{const s=prog.find(x=>x.id===pl.id);if(s)fn(s);};
+  const move=(i,dir)=>editProgramme(prog=>inDay(prog,s=>{const j=i+dir;if(j<0||j>=s.exercises.length)return;[s.exercises[i],s.exercises[j]]=[s.exercises[j],s.exercises[i]];}));
+  const remove=id=>{editProgramme(prog=>inDay(prog,s=>{s.exercises=s.exercises.filter(e=>e.id!==id);}));setConfirmDel(null);};
+  const ctl=(label,onClick,disabled=false,danger=false)=>(
+    <button aria-label={label} disabled={disabled} onClick={e=>{e.stopPropagation();onClick();}} style={{width:30,height:30,borderRadius:9,border:`1px solid ${danger?"#ffc8cd":P.roseLite}`,background:danger?"#fff0f2":P.white,color:danger?"#c0392b":P.roseDark,fontSize:13,cursor:disabled?"default":"pointer",opacity:disabled?0.3:1,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0,fontFamily:"'DM Sans'",WebkitAppearance:"none"}}>{label==="Move up"?"↑":label==="Move down"?"↓":label==="Edit"?"✎":"✕"}</button>);
   return(<div className="mo" onClick={()=>setPlanModal(null)}>
     <div className="ms sl" onClick={e=>e.stopPropagation()} style={{maxHeight:"88dvh"}}>
       <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
@@ -1601,17 +1621,23 @@ function PlanModal(){
           </div>
           <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{pl.name}</h3>
         </div>
-        <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
+        <div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
+          <button onClick={()=>{setEditing(!editing);setConfirmDel(null);}} className="btnG" style={{padding:"5px 12px",fontSize:10,letterSpacing:"0.08em",background:editing?P.roseDark:"none",color:editing?"white":P.roseDark,borderColor:editing?P.roseDark:P.rosePrimary}}>{editing?"DONE":"EDIT"}</button>
+          <button aria-label="Close" onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+        </div>
       </div>
-      <p style={{fontSize:12,color:P.roseMid,marginBottom:pl.info?6:16,lineHeight:1.5}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
-      {pl.info&&<p style={{fontSize:11,color:P.roseDeep,marginBottom:14,lineHeight:1.55,fontStyle:"italic"}}>{pl.info}</p>}
+      <p style={{fontSize:12,color:P.roseMid,marginBottom:pl.info||editing?6:16,lineHeight:1.5}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+      {editing
+        ?<p style={{fontSize:11,color:P.roseDeep,marginBottom:14,lineHeight:1.55,fontStyle:"italic"}}>Tap an exercise to change it. ↑ ↓ to reorder, ✕ to remove. Workouts you already logged are kept.</p>
+        :pl.info&&<p style={{fontSize:11,color:P.roseDeep,marginBottom:14,lineHeight:1.55,fontStyle:"italic"}}>{pl.info}</p>}
       {/* Away warning */}
-      {ds>=COMEBACK_DAYS&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
+      {!editing&&ds>=COMEBACK_DAYS&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
         <span style={{fontSize:14,flexShrink:0}}>⚠️</span>
         <p style={{fontSize:12,color:"#7a5c00",lineHeight:1.55}}>{ds>=FRESH_START_DAYS?`Away ${ds} days — fresh start: back to your starting weights. They'll climb again from here.`:`Away ${ds} days — one step lighter today to ease you back in.`}</p>
       </div>}
       {/* Exercise list */}
       <div style={{background:P.bg,borderRadius:12,overflow:"hidden",marginBottom:16}}>
+        {pl.exercises.length===0&&<p style={{padding:"16px 14px",fontSize:12,color:P.roseMid,textAlign:"center"}}>No exercises yet — add one below.</p>}
         {pl.exercises.map((ex,i)=>{
           const lifts=sinceReset(data);
           const cw=getWeight(ex,lifts,pl.id);
@@ -1619,24 +1645,215 @@ function PlanModal(){
           const isUp=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw>lastW;
           const isDown=!ex.bw&&typeof cw==="number"&&lastW!=null&&cw<lastW;
           const head=ex.group&&ex.group!==pl.exercises[i-1]?.group;
+          const load=ex.bw?(ex.equip||"BW"):fmtLoad(cw,unitOf(ex),ex);
           return(<Fragment key={ex.id}>
           {head&&<p style={{padding:"9px 14px 5px",fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:pl.color,fontWeight:600,background:`${pl.color}10`,borderBottom:`1px solid ${P.roseLite}`}}>{ex.group}</p>}
-          <div style={{display:"flex",alignItems:"center",padding:"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:10}}>
+          <div onClick={editing?()=>setExForm({sessionId:pl.id,ex}):undefined} style={{display:"flex",alignItems:"center",padding:editing?"9px 10px 9px 14px":"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:editing?8:10,cursor:editing?"pointer":"default"}}>
             <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
-              <p style={{fontSize:11,color:P.roseMid,marginTop:2}}>{ex.muscle}</p>
+              <p style={{fontSize:11,color:P.roseMid,marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{editing?`${ex.sets}×${ex.reps} · ${load}`:ex.muscle}</p>
             </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
+            {editing?(<div style={{display:"flex",gap:4,flexShrink:0}}>
+              {ctl("Move up",()=>move(i,-1),i===0)}
+              {ctl("Move down",()=>move(i,1),i===pl.exercises.length-1)}
+              {confirmDel===ex.id
+                ?<button onClick={e=>{e.stopPropagation();remove(ex.id);}} style={{height:30,borderRadius:9,border:"none",background:"#c0392b",color:"white",fontSize:10,fontWeight:600,padding:"0 9px",cursor:"pointer",letterSpacing:"0.06em",fontFamily:"'DM Sans'"}}>DELETE</button>
+                :ctl("Remove",()=>setConfirmDel(ex.id),false,true)}
+            </div>):(<div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
-              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?(ex.equip||"BW"):fmtLoad(cw,unitOf(ex),ex)}{isUp?" ↑":isDown?" ↓":""}</p>
-            </div>
+              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{load}{isUp?" ↑":isDown?" ↓":""}</p>
+            </div>)}
           </div></Fragment>);
         })}
       </div>
-      <button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP">START {pl.name.toUpperCase()} →</button>
+      {editing
+        ?<div style={{display:"flex",gap:8}}>
+          <button className="btnG" style={{flex:1}} onClick={()=>setExForm({sessionId:pl.id,ex:null,group:pl.exercises[pl.exercises.length-1]?.group})}>+ ADD EXERCISE</button>
+          <button className="btnP" style={{flex:1,padding:"10px 18px"}} onClick={()=>{setEditing(false);setConfirmDel(null);}}>DONE</button>
+        </div>
+        :<button onClick={()=>{setPlanModal(null);startSession(pl);}} className="btnP">START {pl.name.toUpperCase()} →</button>}
     </div>
   </div>);
+}
+
+// ── ADD / EDIT AN EXERCISE ──────────────────────────────────────────────────
+const SECTIONS=["Warm-up","Glutes","Core","Back","Shoulders","Other"];
+const LOAD_STYLES:[string,string][]=[["total","Total weight"],["bar","Barbell — shows kg per side"],["hand","Per hand (2 dumbbells)"],["arm","Per arm"],["one","One weight, one hand"]];
+const ANIM_FOR={"Warm-up":"cd",Glutes:"ht",Core:"pl",Back:"row",Shoulders:"lr",Other:"cd"};
+const newExerciseId=()=>"x_"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+function ExerciseForm(){
+  const {exForm,setExForm,editProgramme}=useApp();
+  const src=exForm.ex;
+  const day=SESSIONS.find(s=>s.id===exForm.sessionId);
+  const[f,setF]=useState(()=>({
+    name:src?.name||"",group:src?.group||exForm.group||"Glutes",muscle:src?.muscle||"",
+    sets:String(src?.sets??3),reps:src?.reps||"10–12",bw:!!src?.bw,
+    kg:src&&!src.bw?String(src.kg??""):"",
+    load:src?.bar?"bar":src?.per==="hand"?"hand":src?.per==="arm"?"arm":src?.note?"one":"total",
+    step:String(src&&!src.bw?src.step??2.5:2.5),freq:String(src&&!src.bw?src.freq??3:3),rest:String(src?.rest??60),
+    equip:src?.equip||"",tip:src?.tip||"",
+  }));
+  const[err,setErr]=useState("");
+  const[confirmDel,setConfirmDel]=useState(false);
+  const set=(k,v)=>setF(p=>({...p,[k]:v}));
+  const isLevel=src?.unit==="level";
+  const close=()=>setExForm(null);
+  const save=()=>{
+    const name=f.name.trim();if(!name){setErr("Give the exercise a name.");return;}
+    const sets=Math.round(toNum(f.sets)||0);if(sets<1||sets>20){setErr("Sets: between 1 and 20.");return;}
+    let ex:any={...(src||{id:newExerciseId(),anim:ANIM_FOR[f.group]||"cd",cue:"",start:"",dont:"",swaps:[]}),
+      name,group:f.group,muscle:f.muscle.trim()||f.group,sets,reps:f.reps.trim()||"10",rest:Math.max(0,Math.round(toNum(f.rest)??60)),tip:f.tip.trim()};
+    delete ex.bar;delete ex.per;delete ex.note;delete ex.equip;
+    if(f.bw){ex={...ex,bw:true,kg:0,step:0,freq:0};if(f.equip.trim())ex.equip=f.equip.trim();}
+    else{
+      const kg=toNum(f.kg);if(kg==null||kg<0){setErr(isLevel?"Enter the starting level.":"Enter the starting weight (kg).");return;}
+      ex={...ex,bw:false,kg,step:Math.max(0,toNum(f.step)??0),freq:Math.max(0,Math.round(toNum(f.freq)??0))};
+      if(f.load==="bar")ex.bar=src?.bar||20;else if(f.load==="hand")ex.per="hand";else if(f.load==="arm")ex.per="arm";else if(f.load==="one")ex.note=src?.note||"one hand";
+    }
+    editProgramme(prog=>{
+      const s=prog.find(x=>x.id===exForm.sessionId);if(!s)return;
+      const i=s.exercises.findIndex(e=>e.id===ex.id);
+      if(i>=0){s.exercises[i]=ex;return;}
+      const lastOfSection=s.exercises.map(e=>e.group).lastIndexOf(ex.group); // new: at the end of its section
+      if(lastOfSection>=0)s.exercises.splice(lastOfSection+1,0,ex);else s.exercises.push(ex);
+    });
+    close();
+  };
+  const remove=()=>{editProgramme(prog=>{const s=prog.find(x=>x.id===exForm.sessionId);if(s)s.exercises=s.exercises.filter(e=>e.id!==src.id);});close();};
+  const lbl=t=><p className="lbl">{t}</p>;
+  const seg=(opts:[string,string][],val,onPick)=>(
+    <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{opts.map(([v,l])=>(
+      <button key={v} onClick={()=>onPick(v)} style={{flex:"1 1 auto",padding:"8px 10px",borderRadius:10,border:`1.5px solid ${val===v?P.roseDark:P.roseLite}`,background:val===v?P.roseLite:P.white,color:val===v?P.roseDeep:P.roseMid,fontSize:12,fontWeight:val===v?600:400,cursor:"pointer",fontFamily:"'DM Sans'",WebkitAppearance:"none"}}>{l}</button>))}
+    </div>);
+  return(<div className="mo" style={{zIndex:400}} onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()} style={{maxHeight:"92dvh"}}>
+    <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 14px"}}/>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+      <div>
+        <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>{day?day.name:""}</p>
+        <h3 className="serif" style={{fontSize:21,color:P.roseDeep,fontWeight:400}}>{src?"Edit exercise":"Add exercise"}</h3>
+      </div>
+      <button aria-label="Close" onClick={close} style={{background:"none",border:"none",cursor:"pointer",padding:4}}><IcClose c={P.roseMid} s={18}/></button>
+    </div>
+    <div style={{display:"flex",flexDirection:"column",gap:12}}>
+      <div>{lbl("Name")}<input className="fld" value={f.name} onChange={e=>set("name",e.target.value)} placeholder="e.g. Cable Pull-Through"/></div>
+      <div>{lbl("Section")}<select className="fld" value={f.group} onChange={e=>set("group",e.target.value)}>{[...new Set([...SECTIONS,f.group])].map(s=><option key={s} value={s}>{s}</option>)}</select></div>
+      <div style={{display:"flex",gap:10}}>
+        <div style={{flex:1}}>{lbl("Sets")}<input className="fld" inputMode="numeric" value={f.sets} onChange={e=>set("sets",e.target.value)}/></div>
+        <div style={{flex:2}}>{lbl("Reps / time")}<input className="fld" value={f.reps} onChange={e=>set("reps",e.target.value)} placeholder="10–12 · 12–15/leg · 30 sec"/></div>
+      </div>
+      <div>{lbl("Type")}{seg([["w","With weight"],["bw","Bodyweight"]],f.bw?"bw":"w",v=>set("bw",v==="bw"))}</div>
+      {f.bw?(
+        <div>{lbl("Equipment (optional)")}<input className="fld" value={f.equip} onChange={e=>set("equip",e.target.value)} placeholder="Band above knees · Mat"/></div>
+      ):(<>
+        <div style={{display:"flex",gap:10}}>
+          <div style={{flex:1}}>{lbl(isLevel?"Start level":"Start weight (kg)")}<input className="fld" inputMode="decimal" value={f.kg} onChange={e=>set("kg",e.target.value)} placeholder={isLevel?"4":"10"}/></div>
+          <div style={{flex:1}}>{lbl(isLevel?"Step (levels)":"Step (kg)")}<input className="fld" inputMode="decimal" value={f.step} onChange={e=>set("step",e.target.value)}/></div>
+        </div>
+        {!isLevel&&<div>{lbl("The weight is")}{seg(LOAD_STYLES,f.load,v=>set("load",v))}</div>}
+        <div>{lbl("Go up after (complete sessions, 0 = never)")}<input className="fld" inputMode="numeric" value={f.freq} onChange={e=>set("freq",e.target.value)}/></div>
+      </>)}
+      <div style={{display:"flex",gap:10}}>
+        <div style={{flex:1}}>{lbl("Rest (sec)")}<input className="fld" inputMode="numeric" value={f.rest} onChange={e=>set("rest",e.target.value)}/></div>
+        <div style={{flex:2}}>{lbl("Muscle (optional)")}<input className="fld" value={f.muscle} onChange={e=>set("muscle",e.target.value)} placeholder={f.group}/></div>
+      </div>
+      <div>{lbl("Tip (optional)")}<textarea className="fld" rows={2} value={f.tip} onChange={e=>set("tip",e.target.value)} style={{resize:"none"}}/></div>
+    </div>
+    {err&&<p style={{fontSize:12,color:"#c0392b",marginTop:10}}>{err}</p>}
+    <div style={{display:"flex",gap:8,marginTop:16}}>
+      <button className="btnG" style={{flex:1}} onClick={close}>CANCEL</button>
+      <button className="btnP" style={{flex:2,padding:"10px 18px"}} onClick={save}>{src?"SAVE":"ADD"}</button>
+    </div>
+    {src&&<button onClick={()=>confirmDel?remove():setConfirmDel(true)} style={{width:"100%",marginTop:10,background:confirmDel?"#c0392b":"none",color:confirmDel?"white":"#c0392b",border:"1.5px solid #ffc8cd",borderRadius:40,padding:"10px",fontSize:12,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'"}}>{confirmDel?"TAP AGAIN TO REMOVE":"Remove from this day"}</button>}
+  </div></div>);
+}
+
+// ── SYNC (Me tab) ────────────────────────────────────────────────────────────
+function useSyncStatus(){
+  const[s,setS]=useState(()=>cloud.getStatus());
+  useEffect(()=>cloud.subscribe(setS),[]);
+  return s;
+}
+const authMessage=e=>{
+  const m=String(e?.message||e||"");
+  if(/invalid login credentials/i.test(m))return"Email or password is wrong.";
+  if(/already registered|already been registered/i.test(m))return"This email already has an account — sign in instead.";
+  if(/email not confirmed/i.test(m))return"Confirm your email first (check your inbox), then sign in.";
+  if(/failed to fetch|load failed|network/i.test(m))return"No connection — try again when you're online.";
+  if(/password/i.test(m))return m;
+  return m||"Something went wrong.";
+};
+const agoText=t=>{if(!t)return"";const s=Math.round((Date.now()-t)/1000);return s<60?"just now":s<3600?`${Math.round(s/60)} min ago`:s<86400?`${Math.round(s/3600)} h ago`:`${Math.round(s/86400)} d ago`;};
+
+function SyncPanel(){
+  const st=useSyncStatus();
+  const[email,setEmail]=useState(st.email||"");
+  const[pw,setPw]=useState("");
+  const[busy,setBusy]=useState(false);
+  const[note,setNote]=useState(null); // {err,text}
+  const go=async mode=>{
+    if(!/\S+@\S+\.\S+/.test(email)||pw.length<6){setNote({err:true,text:"Enter your email and a password of at least 6 characters."});return;}
+    setBusy(true);setNote(null);
+    try{
+      if(mode==="in")await cloud.signIn(email,pw);
+      else{const r=await cloud.signUp(email,pw,location.origin);if(r.needsConfirmation)setNote({text:"Account created. Tap the link in the email we sent, then sign in here."});}
+      setPw("");
+    }catch(e){setNote({err:true,text:authMessage(e)});}
+    finally{setBusy(false);}
+  };
+  const showForm=!st.linked||st.state==="signin";
+  const line=st.state==="syncing"?"Syncing…"
+    :st.state==="ok"?`Synced ${agoText(st.lastSync)}`
+    :st.state==="idle"?"Connecting…"
+    :st.message||"";
+  const lineCol=st.state==="setup"||st.state==="error"?"#c0392b":st.state==="offline"||st.state==="signin"?"#b07d00":P.roseDark;
+  return(<div style={{background:P.white,borderRadius:14,padding:"12px 16px",boxShadow:"0 2px 12px rgba(212,120,138,0.09)",flexShrink:0}}>
+    <div style={{paddingBottom:7,borderBottom:`1px solid ${P.roseLite}`,marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Sync · all your phones</p>
+      {st.linked&&<span style={{width:8,height:8,borderRadius:"50%",background:st.state==="ok"?"#4caf7d":st.state==="syncing"||st.state==="idle"?P.rosePrimary:lineCol}}/>}
+    </div>
+    {st.linked&&<>
+      <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis"}}>{st.email}</p>
+      <p style={{fontSize:11,color:lineCol,marginTop:3,lineHeight:1.5}}>{line}{st.pending>0&&st.state!=="syncing"?` · ${st.pending} change${st.pending!==1?"s":""} waiting`:""}</p>
+    </>}
+    {!st.linked&&<p style={{fontSize:11,color:P.roseMid,lineHeight:1.6,marginBottom:10}}>Sign in to use PeachFit on more than one phone. Your plan, workouts, weights, body numbers and protein days are saved to your account and show up on every phone you sign in on.</p>}
+    {showForm&&<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:st.linked?10:0}}>
+      <input className="fld" type="email" autoComplete="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+      <input className="fld" type="password" autoComplete={st.linked?"current-password":"current-password"} placeholder="Password (6+ characters)" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")go("in");}}/>
+      <div style={{display:"flex",gap:8}}>
+        <button className="btnP" disabled={busy} style={{flex:1,padding:"11px 14px",opacity:busy?0.6:1}} onClick={()=>go("in")}>{busy?"…":"SIGN IN"}</button>
+        {!st.linked&&<button className="btnG" disabled={busy} style={{flex:1}} onClick={()=>go("up")}>CREATE ACCOUNT</button>}
+      </div>
+      {!st.linked&&<p style={{fontSize:10,color:P.roseMid,lineHeight:1.5}}>Use the same email and password on each phone.</p>}
+    </div>}
+    {note&&<p style={{fontSize:11,color:note.err?"#c0392b":P.roseDark,marginTop:8,lineHeight:1.5}}>{note.text}</p>}
+    {st.linked&&<div style={{display:"flex",gap:8,marginTop:10}}>
+      <button className="btnG" style={{flex:1}} onClick={()=>cloud.syncNow()}>SYNC NOW</button>
+      <button className="btnG" style={{flex:1,borderColor:P.roseLite,color:P.roseMid}} onClick={()=>cloud.signOut()}>SIGN OUT</button>
+    </div>}
+  </div>);
+}
+
+function RestorePlanModal(){
+  const {data,persist,setMeModal}=useApp();
+  return(<div className="mo" onClick={()=>setMeModal(null)}><div className="ms sl" onClick={e=>e.stopPropagation()}>
+    <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+    <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><div style={{width:44,height:44,borderRadius:14,background:P.roseLite,display:"flex",alignItems:"center",justifyContent:"center"}}><IcRefresh c={P.roseDark} s={20}/></div></div>
+    <h3 className="serif" style={{fontSize:20,color:P.roseDeep,fontWeight:400,textAlign:"center",marginBottom:6}}>Restore the default plan?</h3>
+    <p style={{fontSize:11,color:P.roseMid,lineHeight:1.65,textAlign:"center",marginBottom:22}}>Your days and exercises go back to the built-in plan (Mon C · Wed A · Fri B · Home). Exercises you added are removed. Workouts and weights you logged are kept.</p>
+    <button onClick={()=>{persist({...data,programme:clonePlan(DEFAULT_SESSIONS)});setMeModal(null);}} style={{background:P.roseDark,color:"white",border:"none",borderRadius:40,padding:"14px",fontSize:13,fontWeight:500,cursor:"pointer",fontFamily:"'DM Sans'",width:"100%",marginBottom:10,letterSpacing:"0.06em"}}>RESTORE PLAN</button>
+    <button onClick={()=>setMeModal(null)} className="btnG" style={{width:"100%"}}>CANCEL</button>
+  </div></div>);
+}
+
+// Strength panel: hip thrusts + lat pulldown, else the first weighted exercises in the plan
+function strengthPicks(){
+  const want:[string,string][]=[["ht_a","Hip Thrust A"],["lp","Lat Pulldown"],["ht_b","Hip Thrust B"]];
+  const weighted=SESSIONS.flatMap(s=>s.exercises).filter(e=>!e.bw&&e.step>0&&(e.unit||"kg")==="kg");
+  const picks=want.filter(([id])=>weighted.some(e=>e.id===id)).map(([id,name])=>({id,name}));
+  for(const e of weighted){if(picks.length>=3)break;if(!picks.some(p=>p.id===e.id))picks.push({id:e.id,name:e.name});}
+  return picks;
 }
 
 export default function App(){
@@ -1647,6 +1864,7 @@ export default function App(){
     if(!loaded.nutritionLog)loaded.nutritionLog=[];
     const clean=migrate(loaded);
     if(clean!==loaded)sv(clean);
+    applyProgramme(clean.programme); // the saved (editable) plan is what every screen reads
     return clean;
   });
   // A running workout survives reloads: under 3 h since the last action it reopens, older ones wait on Today
@@ -1694,7 +1912,15 @@ export default function App(){
     else if(!staleLive)clearLive();
   },[sess,staleLive]);
 
-  const persist=d=>{setData(d);sv(d);};
+  const dataRef=useRef(data);
+  // Every change: shown, saved on this phone, and queued for Supabase (your other phones)
+  const persist=d=>{const prev=dataRef.current;dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);cloud.recordChange(prev,d);};
+  // Data pulled from Supabase: shown and saved here, not sent back
+  const replaceData=d=>{dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);};
+  useEffect(()=>{cloud.init({getData:()=>dataRef.current,replaceData});},[]);
+  // Change the plan: fn edits a copy, which is saved like any other change
+  const editProgramme=fn=>{const cur=dataRef.current;const prog=clonePlan(cur.programme&&cur.programme.length?cur.programme:DEFAULT_SESSIONS);fn(prog);persist({...cur,programme:prog});};
+  const[exForm,setExForm]=useState(null); // {sessionId, ex (null = new), group}
 
   const logBodyEntry=entry=>{
     const today=localDay();
@@ -1703,7 +1929,7 @@ export default function App(){
     // Same day → merge (correction). New day → new entry (progress).
     const merged=existing
       ?{...existing,...entry,date:new Date().toISOString()}
-      :{date:new Date().toISOString(),...entry};
+      :(()=>{const date=new Date().toISOString();return{id:bodyId(date),date,...entry};})();
     const newLog=[...data.bodyLog.filter(e=>!isToday(e)),merged]
       .sort((a,b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
     persist({...data,bodyLog:newLog});
@@ -1730,7 +1956,8 @@ export default function App(){
     // "Top of the range on every set?" — kept only for lifts that were saved
     const top={};
     pl.exercises.forEach(ex=>{if(numericWeights[ex.id]!=null&&typeof s.top?.[ex.id]==="boolean")top[ex.id]=s.top[ex.id];});
-    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:{...done},swapped,...(skipped.length?{skipped}:{}),...(Object.keys(top).length?{top}:{})};
+    const date=new Date(end).toISOString();
+    const rec={id:workoutId(date,pl.id),date,sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:{...done},swapped,...(skipped.length?{skipped}:{}),...(Object.keys(top).length?{top}:{})};
     return{rec,prs};
   };
 
@@ -1859,7 +2086,7 @@ export default function App(){
   const weekAgo=Date.now()-7*86400000;
   const thisWeekSess=data.sessions.filter(s=>new Date(s.date)>weekAgo);
 
-  const ctx={tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,requestFinish,requestLeave,clearWorkout,skipExercise,jumpTo,workoutSheet,setWorkoutSheet,staleLive,finishStale,discardStale,totSets,doneSets,thisWeekSess};
+  const ctx={editProgramme,exForm,setExForm,tab,setTab,data,persist,active,setActive,sess,setSess,modal,setModal,summary,setSummary,swapModal,setSwapModal,logModal,setLogModal,progressModal,setProgressModal,meModal,setMeModal,planModal,setPlanModal,importState,setImportState,importInputRef,finishingRef,logBodyEntry,startSession,completeCurrentSet,advanceAfterRest,saveSession,finishSession,requestFinish,requestLeave,clearWorkout,skipExercise,jumpTo,workoutSheet,setWorkoutSheet,staleLive,finishStale,discardStale,totSets,doneSets,thisWeekSess};
 
   // ── RENDER ────────────────────────────────────────────────────────────────
   return(<AppCtx.Provider value={ctx}>
@@ -1877,7 +2104,9 @@ export default function App(){
       {meModal==="resetWeights"&&<ResetModal/>}
       {meModal==="clearData"&&<ClearModal/>}
       {meModal==="import"&&<ImportModal/>}
+      {meModal==="restorePlan"&&<RestorePlanModal/>}
       {planModal&&<PlanModal/>}
+      {exForm&&<ExerciseForm/>}
       {workoutSheet&&<WorkoutSheet/>}
       <input ref={importInputRef} type="file" accept=".json,application/json,text/plain" onChange={onImportFile} style={{display:"none"}}/>
       <nav className="nav">
