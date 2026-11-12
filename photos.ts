@@ -30,11 +30,15 @@ export const MOVEMENT:Record<string,string>={
 // Movements that use another movement's photo (none right now — every movement has its own)
 const SAME_AS:Record<string,string>={};
 
+// The How-to sheet shows a full-width 4:3 window of each 4:5 photo, cut just above her head:
+// 0 = top of the photo, 100 = bottom.
+const FOCUS:Record<string,number>={"ab-crunch-machine":54,"back-extension":10,"bird-dog":96,"bulgarian-split-squat":27,"cable-kickback":0,"captains-chair":22,"cross-trainer":0,"donkey-kick":85,"dumbbell-rdl":23,"fire-hydrant":100,"glute-bridge":100,"glute-extension":42,"hip-abduction":6,"hip-thrust":46,"lat-pulldown":0,"lateral-raise":8,"one-arm-row":44,"plank":100,"reverse-crunch":100,"reverse-fly":90,"russian-twist":89,"seated-row":41,"side-plank":100,"single-leg-hip-thrust":100,"single-leg-rdl":51,"stomach-vacuum":0,"swimming":100};
+
 // Photographer credit shown under a photo (free stock photos don't require it, but it's kind)
 const CREDIT:Record<string,string>={};
 
-export function photoFor(ex:any):{src:string,credit?:string}|null{
+export function photoFor(ex:any):{src:string,credit?:string,pos:number}|null{
   const key=ex&&(ex.photo||MOVEMENT[ex.id]);
   const src=key&&(BY_NAME[key]||BY_NAME[SAME_AS[key]]);
-  return src?{src,credit:CREDIT[key]}:null;
+  return src?{src,credit:CREDIT[key],pos:FOCUS[key]??FOCUS[SAME_AS[key]]??70}:null;
 }

@@ -664,35 +664,35 @@ function Modal(){
   return(<div className="mo" onClick={()=>setModal(null)}>
     <div className="ms sl" onClick={e=>e.stopPropagation()}>
       {/* Handle bar */}
-      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 12px"}}/>
       {/* Title row */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
         <div style={{flex:1,paddingRight:12}}>
-          <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:5}}>{modal.muscle}</p>
-          <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{modal.name}</h3>
+          <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>{modal.muscle}</p>
+          <h3 className="serif" style={{fontSize:21,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{modal.name}</h3>
         </div>
         <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
       {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
       {(()=>{const photo=photoFor(modal);return photo
-        ?<figure style={{margin:"14px auto",width:"68%",maxWidth:300}}>
-          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 5",objectFit:"cover",borderRadius:14,background:P.bg}}/>
+        ?<figure style={{margin:"10px 0 10px"}}>
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 3",objectFit:"cover",objectPosition:`50% ${photo.pos}%`,borderRadius:14,background:P.bg}}/>
           {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
         </figure>
         :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}
       {/* Instruction rows */}
       {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].filter(r=>r[1]).map(([lb,ct,Ic,isTip])=>(
-        <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-            <Ic c={P.roseDark} s={13}/>
-            <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseDark,textTransform:"uppercase",fontWeight:500}}>{lb}</p>
+        <div key={lb as string} style={{marginBottom:6,padding:"7px 12px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+            <Ic c={P.roseDark} s={12}/>
+            <p style={{fontSize:8.5,letterSpacing:"0.2em",color:P.roseDark,textTransform:"uppercase",fontWeight:500}}>{lb}</p>
           </div>
-          <p style={{fontSize:13,color:P.roseDeep,lineHeight:1.55,paddingLeft:19}}>{ct}</p>
+          <p style={{fontSize:12.5,color:P.roseDeep,lineHeight:1.42,paddingLeft:18}}>{ct}</p>
         </div>
       ))}
-      <div style={{display:"flex",gap:8,marginTop:12}}>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
         <button className="btnG" style={{flex:1}} onClick={()=>setModal(null)}>CLOSE</button>
-        <button className="btnP" style={{flex:2}} onClick={()=>setModal(null)}>GOT IT</button>
+        <button className="btnP" style={{flex:2,padding:"11px 20px"}} onClick={()=>setModal(null)}>GOT IT</button>
       </div>
     </div>
   </div>);
