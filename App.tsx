@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, createContext, useContext, Fragment } from
 import { P } from "./theme";
 import { SESSIONS, DEFAULT_SESSIONS, applyProgramme, clonePlan } from "./programme";
 import { cloud } from "./cloud";
+import { photoFor } from "./photos";
 import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, FRESH_START_DAYS, COMEBACK_DAYS, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, SCHEMA, workoutId, bodyId, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
@@ -672,8 +673,13 @@ function Modal(){
         </div>
         <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
-      {/* Animation */}
-      <div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>
+      {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
+      {(()=>{const photo=photoFor(modal);return photo
+        ?<figure style={{margin:"14px 0"}}>
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 3",objectFit:"cover",borderRadius:12,background:P.bg}}/>
+          {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
+        </figure>
+        :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}
       {/* Instruction rows */}
       {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].filter(r=>r[1]).map(([lb,ct,Ic,isTip])=>(
         <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
@@ -1850,6 +1856,8 @@ function strengthPicks(){
   return picks;
 }
 
+let BOOT_CHANGE:{from:any,to:any}|null=null; // what the start-up data update changed (sent to Supabase once)
+
 export default function App(){
   const[tab,setTab]=useState("today");
   const[data,setData]=useState(()=>{
@@ -1857,7 +1865,7 @@ export default function App(){
     if(!loaded.profile)loaded.profile={...DEFAULT_PROFILE};
     if(!loaded.nutritionLog)loaded.nutritionLog=[];
     const clean=migrate(loaded);
-    if(clean!==loaded)sv(clean);
+    if(clean!==loaded){sv(clean);BOOT_CHANGE={from:loaded,to:clean};}
     applyProgramme(clean.programme); // the saved (editable) plan is what every screen reads
     return clean;
   });
@@ -1911,7 +1919,11 @@ export default function App(){
   const persist=d=>{const prev=dataRef.current;dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);cloud.recordChange(prev,d);};
   // Data pulled from Supabase: shown and saved here, not sent back
   const replaceData=d=>{dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);};
-  useEffect(()=>{cloud.init({getData:()=>dataRef.current,replaceData});},[]);
+  useEffect(()=>{
+    cloud.init({getData:()=>dataRef.current,replaceData});
+    // an update to the saved data at start-up (e.g. a plan change) goes to Supabase too, not only this phone
+    if(BOOT_CHANGE){cloud.recordChange(BOOT_CHANGE.from,BOOT_CHANGE.to);BOOT_CHANGE=null;}
+  },[]);
   // Change the plan: fn edits a copy, which is saved like any other change
   const editProgramme=fn=>{const cur=dataRef.current;const prog=clonePlan(cur.programme&&cur.programme.length?cur.programme:DEFAULT_SESSIONS);fn(prog);persist({...cur,programme:prog});};
   const[exForm,setExForm]=useState(null); // {sessionId, ex (null = new), group}

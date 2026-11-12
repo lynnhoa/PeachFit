@@ -29,7 +29,7 @@ export function idFrom(str:string){
 export const workoutId=(date:string,sessionId:string)=>idFrom(`w|${date}|${sessionId}`);
 export const bodyId=(date:string)=>idFrom(`b|${date}`);
 
-export const SCHEMA=5;
+export const SCHEMA=6;
 export function migrate(d){
   if((d.schema||0)>=SCHEMA)return d;
   let out=d;
@@ -51,11 +51,15 @@ export function migrate(d){
     out={...out,sessions:kept,schema:4};
   }
   // ── schema 5: ids for syncing between phones + the plan saved with the data (editable) ──
-  out={...out,
+  if((out.schema||0)<5)out={...out,
     sessions:(out.sessions||[]).map(s=>s.id?s:{id:workoutId(s.date,s.sessionId),...s}),
     bodyLog:(out.bodyLog||[]).map(e=>e.id?e:{id:bodyId(e.date),...e}),
     programme:Array.isArray(out.programme)&&out.programme.length?out.programme:clonePlan(DEFAULT_SESSIONS),
-    schema:SCHEMA};
+    schema:5};
+  // ── schema 6: Suitcase Carry → Dumbbell Russian Twist (Mon + Fri), in the saved plan too ──
+  const twist=DEFAULT_SESSIONS.flatMap(s=>s.exercises).find(e=>e.id==="rt_b");
+  out={...out,schema:SCHEMA,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
+    e.id==="sc_b"||e.id==="sc_c"?{...clonePlan(twist),id:e.id==="sc_b"?"rt_b":"rt_c"}:e)}))};
   return out;
 }
 
