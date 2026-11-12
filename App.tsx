@@ -661,38 +661,38 @@ function Modal(){
   const {modal,setModal}=useApp();
   if(!modal)return null;
   const Anim=A[modal.anim]||A.cd;
-  return(<div className="mo" onClick={()=>setModal(null)}>
+  return(<div className="mo" style={{zIndex:300}} onClick={()=>setModal(null)}>
     <div className="ms sl" onClick={e=>e.stopPropagation()}>
       {/* Handle bar */}
-      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
+      <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 12px"}}/>
       {/* Title row */}
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:2}}>
         <div style={{flex:1,paddingRight:12}}>
-          <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:5}}>{modal.muscle}</p>
-          <h3 className="serif" style={{fontSize:22,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{modal.name}</h3>
+          <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500,marginBottom:4}}>{modal.muscle}</p>
+          <h3 className="serif" style={{fontSize:21,color:P.roseDeep,fontWeight:400,lineHeight:1.2}}>{modal.name}</h3>
         </div>
         <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
       {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
       {(()=>{const photo=photoFor(modal);return photo
-        ?<figure style={{margin:"14px auto",width:"68%",maxWidth:300}}>
-          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"4 / 5",objectFit:"cover",borderRadius:14,background:P.bg}}/>
+        ?<figure style={{margin:"10px -20px"}}>{/* edge to edge: the sheet has 20px side padding */}
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"16 / 10",objectFit:"cover",objectPosition:`50% ${photo.pos}%`,background:P.bg}}/>
           {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
         </figure>
         :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}
       {/* Instruction rows */}
       {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].filter(r=>r[1]).map(([lb,ct,Ic,isTip])=>(
-        <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
-          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
-            <Ic c={P.roseDark} s={13}/>
-            <p style={{fontSize:9,letterSpacing:"0.2em",color:P.roseDark,textTransform:"uppercase",fontWeight:500}}>{lb}</p>
+        <div key={lb as string} style={{marginBottom:6,padding:"7px 12px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
+            <Ic c={P.roseDark} s={12}/>
+            <p style={{fontSize:8.5,letterSpacing:"0.2em",color:P.roseDark,textTransform:"uppercase",fontWeight:500}}>{lb}</p>
           </div>
-          <p style={{fontSize:13,color:P.roseDeep,lineHeight:1.55,paddingLeft:19}}>{ct}</p>
+          <p style={{fontSize:12.5,color:P.roseDeep,lineHeight:1.42,paddingLeft:18}}>{ct}</p>
         </div>
       ))}
-      <div style={{display:"flex",gap:8,marginTop:12}}>
+      <div style={{display:"flex",gap:8,marginTop:8}}>
         <button className="btnG" style={{flex:1}} onClick={()=>setModal(null)}>CLOSE</button>
-        <button className="btnP" style={{flex:2}} onClick={()=>setModal(null)}>GOT IT</button>
+        <button className="btnP" style={{flex:2,padding:"11px 20px"}} onClick={()=>setModal(null)}>GOT IT</button>
       </div>
     </div>
   </div>);
@@ -1600,7 +1600,7 @@ function Me(){
 }
 
 function PlanModal(){
-  const {data,planModal,setPlanModal,startSession,editProgramme,setExForm}=useApp();
+  const {data,planModal,setPlanModal,startSession,editProgramme,setExForm,setModal}=useApp();
   const[editing,setEditing]=useState(false);
   const[confirmDel,setConfirmDel]=useState(null);
   if(!planModal)return null;
@@ -1654,7 +1654,7 @@ function PlanModal(){
           const load=ex.bw?(ex.equip||"BW"):fmtLoad(cw,unitOf(ex),ex);
           return(<Fragment key={ex.id}>
           {head&&<p style={{padding:"9px 14px 5px",fontSize:9,letterSpacing:"0.18em",textTransform:"uppercase",color:pl.color,fontWeight:600,background:`${pl.color}10`,borderBottom:`1px solid ${P.roseLite}`}}>{ex.group}</p>}
-          <div onClick={editing?()=>setExForm({sessionId:pl.id,ex}):undefined} style={{display:"flex",alignItems:"center",padding:editing?"9px 10px 9px 14px":"11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:editing?8:10,cursor:editing?"pointer":"default"}}>
+          <div onClick={editing?()=>setExForm({sessionId:pl.id,ex}):()=>setModal(ex)} style={{display:"flex",alignItems:"center",padding:editing?"9px 10px 9px 14px":"11px 10px 11px 14px",borderBottom:i<pl.exercises.length-1?`1px solid ${P.roseLite}`:"none",gap:editing?8:10,cursor:"pointer"}}>
             <span style={{fontSize:11,color:P.roseMid,fontFamily:"'Tenor Sans'",minWidth:16,textAlign:"right",flexShrink:0}}>{i+1}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{ex.name}</p>
@@ -1666,10 +1666,10 @@ function PlanModal(){
               {confirmDel===ex.id
                 ?<button onClick={e=>{e.stopPropagation();remove(ex.id);}} style={{height:30,borderRadius:9,border:"none",background:"#c0392b",color:"white",fontSize:10,fontWeight:600,padding:"0 9px",cursor:"pointer",letterSpacing:"0.06em",fontFamily:"'DM Sans'"}}>DELETE</button>
                 :ctl("Remove",()=>setConfirmDel(ex.id),false,true)}
-            </div>):(<div style={{textAlign:"right",flexShrink:0}}>
+            </div>):(<><div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
               <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{load}{isUp?" ↑":isDown?" ↓":""}</p>
-            </div>)}
+            </div><span aria-hidden="true" style={{color:P.rosePrimary,fontSize:18,lineHeight:1,flexShrink:0,marginLeft:-2}}>›</span></>)}
           </div></Fragment>);
         })}
       </div>

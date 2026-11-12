@@ -29,7 +29,7 @@ export function idFrom(str:string){
 export const workoutId=(date:string,sessionId:string)=>idFrom(`w|${date}|${sessionId}`);
 export const bodyId=(date:string)=>idFrom(`b|${date}`);
 
-export const SCHEMA=7;
+export const SCHEMA=8;
 export function migrate(d){
   if((d.schema||0)>=SCHEMA)return d;
   let out=d;
@@ -62,8 +62,12 @@ export function migrate(d){
     e.id==="sc_b"||e.id==="sc_c"?{...clonePlan(twist),id:e.id==="sc_b"?"rt_b":"rt_c"}:e)}))};
   // ── schema 7: Prone Y-T-W Raise → Swimming (Home), in the saved plan too ──
   const swim=DEFAULT_SESSIONS.flatMap(s=>s.exercises).find(e=>e.id==="h_swim");
-  out={...out,schema:SCHEMA,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
+  if((out.schema||0)<7)out={...out,schema:7,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
     e.id==="h_ytw"?clonePlan(swim):e)}))};
+  // ── schema 8: Y-T-W out of Swimming's swap suggestions too ──
+  const swimSwaps=clonePlan(swim.swaps);
+  out={...out,schema:SCHEMA,programme:(out.programme||clonePlan(DEFAULT_SESSIONS)).map(day=>({...day,exercises:day.exercises.map(e=>
+    e.id==="h_swim"&&(e.swaps||[]).some(w=>/Y-T-W/i.test(w.name))?{...e,swaps:swimSwaps}:e)}))};
   return out;
 }
 
