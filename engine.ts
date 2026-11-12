@@ -21,10 +21,16 @@ export const earliest=(bodyLog,field)=>{for(const e of bodyLog||[])if(e[field]!=
 export const localDay=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 
 // ── ENGINES ───────────────────────────────────────────────────────────────────
-// Next weight for an exercise (pass sinceReset(data) as sessions):
-// 1 history = same session type, sets done, not swapped · 2 none → programme start
-// 3 last done 14+ days ago → 10 % lower (kg only) · 4 step up once the last `freq` sessions
-//   AT THE CURRENT WEIGHT were all complete and span 7+ days (no span rule when freq is 1)
+// Next weight for an exercise (pass sinceReset(data) as sessions).
+// History = same session type, sets done, not swapped.
+// 1 never done                         → programme start weight
+// 2 last done 28+ days ago             → FRESH START: back to programme start weight
+// 3 last done 15–27 days ago           → one step lighter (never below the start weight)
+// 4 progression: one step up only when the last `freq` sessions AT THE CURRENT WEIGHT
+//   were all complete, span at least (freq-1)×7 days, and have no 15+ day break between them
+//   (so sessions from before a break never count toward an increase)
+export const FRESH_START_DAYS=28;
+export const COMEBACK_DAYS=15;
 export function getWeight(ex,sessions,sessionId=null){
   if(ex.bw)return"BW";
   const unit=unitOf(ex);
@@ -32,15 +38,20 @@ export function getWeight(ex,sessions,sessionId=null){
   if(!hist.length)return ex.kg;
   const last=hist[hist.length-1];
   const w=last.weights[ex.id];
-  const daysSince=Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
-  if(daysSince>14)return unit==="kg"?roundLoad(w*0.9,unit):w;
+  const t=s=>new Date(s.date).getTime();
+  const daysSince=Math.floor((Date.now()-t(last))/86400000);
+  if(daysSince>=FRESH_START_DAYS)return ex.kg;
+  if(daysSince>=COMEBACK_DAYS)return ex.step?roundLoad(Math.max(w-ex.step,Math.min(w,ex.kg)),unit):w;
   if(!ex.step||!ex.freq)return w;
   const atW=[];
-  for(let i=hist.length-1;i>=0&&hist[i].weights[ex.id]===w;i--)atW.unshift(hist[i]);
+  for(let i=hist.length-1;i>=0&&hist[i].weights[ex.id]===w;i--){
+    if(atW.length&&(t(atW[0])-t(hist[i]))/86400000>=COMEBACK_DAYS)break;
+    atW.unshift(hist[i]);
+  }
   const recent=atW.slice(-ex.freq);
   if(recent.length<ex.freq)return w;
-  const spanDays=(new Date(recent[recent.length-1].date).getTime()-new Date(recent[0].date).getTime())/86400000;
-  if(ex.freq>1&&spanDays<7)return w;
+  const spanDays=(t(recent[recent.length-1])-t(recent[0]))/86400000;
+  if(spanDays<(ex.freq-1)*7)return w;
   const allDone=recent.every(s=>(Number(s.comp?.[ex.id])||0)>=ex.sets);
   return allDone?roundLoad(w+ex.step,unit):w;
 }
@@ -78,7 +89,8 @@ export function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
   if(!sessions.length)return"Your journey starts today. Every rep counts.";
   const lastSession=sessions[sessions.length-1];
   const daysSince=Math.floor((Date.now()-new Date(lastSession.date))/86400000);
-  if(daysSince>14)return"More than two weeks since your last session. Weights will be slightly reduced to protect you — restart steady.";
+  if(daysSince>=FRESH_START_DAYS)return`${daysSince} days off — fresh start. Weights are back to your starting weights and build up again from there.`;
+  if(daysSince>=COMEBACK_DAYS)return"Two weeks or more off — one step lighter today to ease back in.";
   if(daysSince>10)return"Welcome back. Starting steady — same weights as before.";
   const pr=getProteinHitRate(nutritionLog);
   if(pr&&pr.total>=3&&pr.rate<3/7)return"Most days this week you didn't hit protein. Even Greek yoghurt + chicken = 40g. Your muscles need it.";

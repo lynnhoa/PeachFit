@@ -1226,8 +1226,10 @@ function ProgressModal(){
       const gain=Math.round((lastLogged-startKg)*10)/10;
       const sessionCount=logged.length;
       // Stuck = last 3 logged sessions all same weight
-      const last3=logged.slice(-3).map(s=>s.weights[id]);
-      const stuck=last3.length>=3&&last3.every(w=>w===last3[0]);
+      // Stuck = more sessions at the same weight than the normal progression needs
+      const need=(ex.freq||2)+1;
+      const lastN=logged.slice(-need).map(s=>s.weights[id]);
+      const stuck=lastN.length>=need&&lastN.every(w=>w===lastN[0]);
       // Progress bar: gain relative to 10kg potential ceiling (arbitrary but visible)
       const barPct=Math.min(100,Math.max(0,(gain/(ex.step*10||10))*100));
       return{ex,startKg,firstLogged,lastLogged,gain,sessionCount,stuck,barPct,u:unitOf(ex)};
@@ -1296,7 +1298,7 @@ function ProgressModal(){
                 {stuck&&(
                   <div style={{background:P.roseLite,borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:6}}>
                     <IcArrowUp c={P.roseDark} s={11}/>
-                    <p style={{fontSize:10,color:P.roseDeep,lineHeight:1.4}}>Same weight for 3 sessions — you may be ready to go heavier.</p>
+                    <p style={{fontSize:10,color:P.roseDeep,lineHeight:1.4}}>Same weight for a while — check every set is complete so it can go up.</p>
                   </div>
                 )}
               </div>
