@@ -21,7 +21,7 @@ export const MOVEMENT:Record<string,string>={
   abm:"ab-crunch-machine",abm_b:"ab-crunch-machine",
   kr_a:"captains-chair",kr_c:"captains-chair",
   pl_a:"plank",pl_b:"plank",
-  sc_b:"suitcase-carry",sc_c:"suitcase-carry",
+  rt_b:"russian-twist",rt_c:"russian-twist",
   lp:"lat-pulldown",row:"seated-row",dbr:"one-arm-row",rf:"reverse-fly",lr:"lateral-raise",
   h_gb:"glute-bridge",h_dk:"donkey-kick",h_fh:"fire-hydrant",h_rc:"reverse-crunch",
   h_sp:"side-plank",h_vac:"stomach-vacuum",h_bd:"bird-dog",h_ytw:"prone-ytw",

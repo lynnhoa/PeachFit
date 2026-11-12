@@ -8,6 +8,8 @@ that has that exercise — no code change. Movements without a photo keep their 
 The current photos were cut from the two "Gym Plan" posters (one tile per exercise, label removed),
 enlarged to 640 × 480; tall and wide tiles sit whole on a blurred copy of themselves. One-arm row,
 reverse fly, lateral raise and seated row come from the second poster, the rest from the first.
+The Russian twist (which replaced the suitcase carry) is an AI image made in Canva — a different
+woman from the posters; swap in your own photo any time.
 ✓ = has a photo.
 
 | File name | Exercise | Days | Photo |
@@ -25,7 +27,7 @@ reverse fly, lateral raise and seated row come from the second poster, the rest 
 | `ab-crunch-machine` | Abdominal Crunch Machine | Wed, Fri | ✓ |
 | `captains-chair` | Captain's Chair Knee Raise | Mon, Wed | ✓ |
 | `plank` | Plank | Wed, Fri | ✓ |
-| `suitcase-carry` | Suitcase Carry | Mon, Fri | ✓ |
+| `russian-twist` | Dumbbell Russian Twist | Mon, Fri | ✓ |
 | `lat-pulldown` | Lat Pulldown | Wed | drawing |
 | `seated-row` | Seated Row Machine | Fri | ✓ |
 | `one-arm-row` | One-Arm Dumbbell Row | Mon | ✓ |

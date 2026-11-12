@@ -1856,6 +1856,8 @@ function strengthPicks(){
   return picks;
 }
 
+let BOOT_CHANGE:{from:any,to:any}|null=null; // what the start-up data update changed (sent to Supabase once)
+
 export default function App(){
   const[tab,setTab]=useState("today");
   const[data,setData]=useState(()=>{
@@ -1863,7 +1865,7 @@ export default function App(){
     if(!loaded.profile)loaded.profile={...DEFAULT_PROFILE};
     if(!loaded.nutritionLog)loaded.nutritionLog=[];
     const clean=migrate(loaded);
-    if(clean!==loaded)sv(clean);
+    if(clean!==loaded){sv(clean);BOOT_CHANGE={from:loaded,to:clean};}
     applyProgramme(clean.programme); // the saved (editable) plan is what every screen reads
     return clean;
   });
@@ -1917,7 +1919,11 @@ export default function App(){
   const persist=d=>{const prev=dataRef.current;dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);cloud.recordChange(prev,d);};
   // Data pulled from Supabase: shown and saved here, not sent back
   const replaceData=d=>{dataRef.current=d;applyProgramme(d.programme);setData(d);sv(d);};
-  useEffect(()=>{cloud.init({getData:()=>dataRef.current,replaceData});},[]);
+  useEffect(()=>{
+    cloud.init({getData:()=>dataRef.current,replaceData});
+    // an update to the saved data at start-up (e.g. a plan change) goes to Supabase too, not only this phone
+    if(BOOT_CHANGE){cloud.recordChange(BOOT_CHANGE.from,BOOT_CHANGE.to);BOOT_CHANGE=null;}
+  },[]);
   // Change the plan: fn edits a copy, which is saved like any other change
   const editProgramme=fn=>{const cur=dataRef.current;const prog=clonePlan(cur.programme&&cur.programme.length?cur.programme:DEFAULT_SESSIONS);fn(prog);persist({...cur,programme:prog});};
   const[exForm,setExForm]=useState(null); // {sessionId, ex (null = new), group}

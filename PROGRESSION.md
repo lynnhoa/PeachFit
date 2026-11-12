@@ -36,7 +36,7 @@ Barbell weights assume a 20 kg bar. Each day tracks its own weights.
 | 45° glute extension | 3 × 12–15 | 5 kg plate | +2.5 kg | 3 weeks |
 | Single-leg hip thrust | 3 × 10–12/leg | 10 kg (1 dumbbell) | +2 kg | 3 weeks |
 | Single-leg Romanian deadlift | 3 × 10/leg | 10 kg (one hand) | +2 kg | 3 weeks |
-| Suitcase carry | 3 × 30 sec/side | 10 kg (one hand) | +2 kg | 3 weeks |
+| Dumbbell Russian twist | 3 × 10–12/side | 4 kg (one dumbbell, both hands) | +1 kg | 3 weeks |
 | Captain's chair knee raise | 3 × 10–12 | Bodyweight | — | — |
 | One-arm dumbbell row | 3 × 10–12/arm | 10 kg/arm | +2 kg | 3 weeks |
 | Seated reverse fly | 3 × 12–15 | 3 kg/hand | +1 kg | 4 weeks |
@@ -64,7 +64,7 @@ Barbell weights assume a 20 kg bar. Each day tracks its own weights.
 | Cable kickback | 3 × 12–15/leg | 7.5 kg | +2.5 kg | 4 weeks |
 | Hip abduction machine | 3 × 15–20 | 45 kg | +5 kg | 3 weeks |
 | Ab crunch machine | 3 × 12–15 | 20 kg | +2.5 kg | 3 weeks |
-| Suitcase carry | 3 × 30 sec/side | 10 kg (one hand) | +2 kg | 3 weeks |
+| Dumbbell Russian twist | 3 × 10–12/side | 4 kg (one dumbbell, both hands) | +1 kg | 3 weeks |
 | Plank | 2 × 30–45 sec | Bodyweight | hold longer | — |
 | Seated row machine | 3 × 10–12 | 25 kg | +2.5 kg | 3 weeks |
 
@@ -97,7 +97,7 @@ phone (see supabase/README.md).
 1. **Reps first:** stay at a weight and work up through the rep range (e.g. hip thrust 8 → 12 reps).
    Tap a set as done when you reach at least the bottom of the range with good form.
 2. **After the last set** of each weighted exercise the app asks **"Top of the range on every set?"**
-   (for timed moves like the suitcase carry: **"Full time on every set?"**). Answer on the rest screen,
+   (for a timed move with weight: **"Full time on every set?"**). Answer on the rest screen,
    or on the end screen before saving.
 3. **Weight goes up one step only when all of these are true:**
    - every set was finished in the last **3 sessions** at that weight (4 for kickback, reverse fly and
