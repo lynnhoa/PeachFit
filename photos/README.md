@@ -8,8 +8,8 @@ that has that exercise — no code change. Movements without a photo keep their 
 The current photos were cut from the two "Gym Plan" posters (one tile per exercise, label removed),
 enlarged to 640 × 480; tall and wide tiles sit whole on a blurred copy of themselves. One-arm row,
 reverse fly, lateral raise and seated row come from the second poster, the rest from the first.
-The Russian twist (which replaced the suitcase carry) is an AI image made in Canva — a different
-woman from the posters; swap in your own photo any time.
+The Russian twist (which replaced the suitcase carry) was made in Canva from her photo on the second
+poster, so it's the same woman.
 ✓ = has a photo.
 
 | File name | Exercise | Days | Photo |
