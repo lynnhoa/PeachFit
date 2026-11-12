@@ -153,13 +153,19 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
     const msg=String(e?.message||e||"");
     if(e?.code==="PGRST205"||e?.code==="42P01"||/does not exist|could not find the table/i.test(msg))
       return setStatus({state:"setup",message:"Supabase tables are missing — run supabase/schema.sql in the Supabase SQL Editor."});
-    if(!online()||/failed to fetch|load failed|fetch failed|network/i.test(msg))
+    if(!online()||e?.name==="AuthRetryableFetchError"||/failed to fetch|load failed|fetch failed|network/i.test(msg))
       return setStatus({state:"offline",message:"Offline — changes are kept on this phone and sync when you're back online."});
     if(e?.status===401||/jwt|refresh token|not authenticated/i.test(msg))
       return setStatus({state:"signin",message:"Sign in again to keep syncing."});
     setStatus({state:"error",message:msg||"Sync failed"});
   }
-  const userId=async()=>{const client=await getClient();const {data}=await client.auth.getSession();return data?.session?.user?.id||null;};
+  // The signed-in account. No signal while the login needs refreshing ≠ signed out: that's reported as offline.
+  const userId=async()=>{
+    const client=await getClient();
+    const {data,error}=await client.auth.getSession();
+    if(!data?.session&&error&&(error.name==="AuthRetryableFetchError"||/fetch|network|load failed/i.test(String(error.message||""))))throw error;
+    return data?.session?.user?.id||null;
+  };
 
   async function fetchAll(){
     const client=await getClient();
@@ -261,9 +267,12 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
       if(m.uid!==u.id){if(m.uid)write(BOX_KEY,{seq:0,ops:{}});setMeta({uid:u.id,email:u.email||null,firstDone:false});}
       setStatus({linked:true,email:u.email||null});
       if(event==="TOKEN_REFRESHED")schedulePush();else sync(true);
+    }else if(meta().uid){
+      // Linked phone without a session: usually just no signal while the login refreshes → sync works it out
+      // (offline → "Offline", login really ended → "Sign in again"). This phone stays signed in otherwise.
+      setStatus({linked:true});sync(true);
     }else{
-      const m=meta();
-      setStatus(m.uid?{linked:true,state:"signin",message:"Sign in again to keep syncing."}:{linked:false,email:null,state:"off",message:""});
+      setStatus({linked:false,email:null,state:"off",message:""});
     }
   }
 
@@ -279,7 +288,7 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
     init(a:{getData:()=>any,replaceData:(d:any)=>void}){
       app=a;if(inited)return;inited=true;
       const loc=win&&win.location?String(win.location.hash||"")+String(win.location.search||""):"";
-      if(meta().uid||/access_token|refresh_token|type=signup|[?&]code=/.test(loc))start(); // signed in, or back from the email link
+      if(meta().uid||/access_token|refresh_token|[?&]code=/.test(loc))start(); // signed in, or back from a Supabase email link
       if(win){
         win.addEventListener("online",()=>sync(true));
         win.document?.addEventListener("visibilitychange",()=>{if(win.document.visibilityState==="visible")sync(Date.now()-lastPull>20000);});
@@ -296,12 +305,6 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
       await start();const client=await getClient();
       const {error}=await client.auth.signInWithPassword({email:email.trim(),password});
       if(error)throw error;
-    },
-    async signUp(email:string,password:string,redirectTo?:string){
-      await start();const client=await getClient();
-      const {data,error}=await client.auth.signUp({email:email.trim(),password,options:redirectTo?{emailRedirectTo:redirectTo}:undefined});
-      if(error)throw error;
-      return{needsConfirmation:!data?.session};
     },
     async signOut(){
       // this phone keeps its data; it just stops syncing
