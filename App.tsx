@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
@@ -120,6 +120,23 @@ const timedSecs=reps=>{const m=String(reps).match(/(\d+)\s*(min|sec)\b/);return 
 // ── APP CONTEXT — screens and sheets read shared state and actions from here ──
 const AppCtx=createContext(null);
 const useApp=()=>useContext(AppCtx);
+
+// "Top of the rep range on every set?" — asked once an exercise's sets are all done.
+// Yes in the last 2 sessions (plus the normal rules) is what lets the weight go up.
+const TopAsk=({ex,compact=false})=>{
+  const {sess,setSess}=useApp();
+  if(!progresses(ex)||sess?.swapped?.[ex.id])return null;
+  const ans=sess?.top?.[ex.id];
+  const set=v=>setSess(p=>({...p,lastActionAt:Date.now(),top:{...(p.top||{}),[ex.id]:v}}));
+  const btn=(v,label)=>{const on=ans===v;return(
+    <button onClick={()=>set(v)} style={{flex:1,background:on?P.rosePrimary:"rgba(255,255,255,0.06)",border:`1.5px solid ${on?P.rosePrimary:"rgba(242,160,176,0.3)"}`,color:on?"white":P.roseHero,borderRadius:40,padding:"8px 10px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",fontWeight:on?600:400,WebkitAppearance:"none"}}>{label}</button>);};
+  return(<div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:compact?"10px 14px":"12px 16px",textAlign:"center",marginBottom:compact?8:16,width:"100%",maxWidth:300}}>
+    <p style={{fontSize:compact?11:12,color:"white",fontWeight:500,marginBottom:2}}>{compact?ex.name:"Top of the range on every set?"}</p>
+    <p style={{fontSize:10,color:P.roseMid,marginBottom:8}}>{compact?`${topReps(ex.reps)} reps on every set?`:`${topReps(ex.reps)} reps on all ${ex.sets} sets of ${ex.name}`}</p>
+    <div style={{display:"flex",gap:8}}>{btn(true,"Yes, all sets")}{btn(false,"Not yet")}</div>
+    {ans===false&&<p style={{fontSize:9,color:P.roseMid,marginTop:6}}>Same weight next time — add a rep where you can.</p>}
+  </div>);
+};
 
 function Today(){
   const[editProtein,setEditProtein]=useState(false);
@@ -320,6 +337,7 @@ function Workout(){
       <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"16px 24px"}}>
         <p style={{fontSize:9,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",marginBottom:20}}>REST</p>
         <RestRing/>
+        {nextIsNewEx&&setsCompletedForEx>=ex.sets&&<TopAsk ex={ex}/>}
         <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
           <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
           {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx),nextEx)}</p></>)
@@ -336,11 +354,17 @@ function Workout(){
 
   // DONE screen
   if(phase==="done"||doneSets>=totSets){
+    // every finished exercise that progresses — answer or change the "top of range?" question before saving
+    const unanswered=active.exercises.filter(e=>progresses(e)&&!sess.swapped?.[e.id]&&(sess.csets?.[e.id]||0)>=e.sets);
     return(<div className="screen-full" style={{background:P.roseDeep,alignItems:"center",justifyContent:"center",padding:"40px 28px",textAlign:"center"}}>
       <IcSparkle c={P.roseHero} s={36}/>
       <p style={{fontSize:8,letterSpacing:"0.3em",color:P.roseMid,textTransform:"uppercase",margin:"16px 0 6px"}}>{doneSets>=totSets?"All sets done":"Workout done"}</p>
       <h2 className="serif" style={{fontSize:30,color:"white",fontWeight:400,marginBottom:8}}>Incredible,<br/><em style={{color:P.roseHero}}>{data.profile.name}</em></h2>
-      <p style={{fontSize:12,color:P.roseMid,marginBottom:28,lineHeight:1.7}}>{doneSets>=totSets?"Every set complete.":`${doneSets} of ${totSets} sets done.`}</p>
+      <p style={{fontSize:12,color:P.roseMid,marginBottom:unanswered.length?16:28,lineHeight:1.7}}>{doneSets>=totSets?"Every set complete.":`${doneSets} of ${totSets} sets done.`}</p>
+      {unanswered.length>0&&<div style={{width:"100%",display:"flex",flexDirection:"column",alignItems:"center",marginBottom:12,maxHeight:"40vh",overflowY:"auto"}}>
+        <p style={{fontSize:9,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:8}}>Top of the range? · check before saving</p>
+        {unanswered.map(e=><TopAsk key={e.id} ex={e} compact/>)}
+      </div>}
       <button className="btnP" style={{marginBottom:12}} onClick={requestFinish}>FINISH SESSION</button>
       {doneSets<totSets&&<button onClick={()=>{
         finishingRef.current=false;
@@ -1299,7 +1323,7 @@ function ProgressModal(){
                 {stuck&&(
                   <div style={{background:P.roseLite,borderRadius:8,padding:"6px 10px",display:"flex",alignItems:"center",gap:6}}>
                     <IcArrowUp c={P.roseDark} s={11}/>
-                    <p style={{fontSize:10,color:P.roseDeep,lineHeight:1.4}}>Same weight for a while — check every set is complete so it can go up.</p>
+                    <p style={{fontSize:10,color:P.roseDeep,lineHeight:1.4}}>Same weight for a while — tap "Yes, all sets" when you hit the top of the range so it can go up.</p>
                   </div>
                 )}
               </div>
@@ -1700,7 +1724,10 @@ export default function App(){
     const lifts=sinceReset({sessions:history,weightsResetAt:data.weightsResetAt});
     const prs=pl.exercises.filter(ex=>numericWeights[ex.id]!=null).filter(ex=>{const pr=getPR(ex,lifts);return pr!=null&&numericWeights[ex.id]>pr;}).map(ex=>ex.name);
     const skipped=pl.exercises.filter(ex=>s.skipped&&s.skipped[ex.id]&&!(done[ex.id]>0)).map(ex=>ex.id);
-    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:{...done},swapped,...(skipped.length?{skipped}:{})};
+    // "Top of the range on every set?" — kept only for lifts that were saved
+    const top={};
+    pl.exercises.forEach(ex=>{if(numericWeights[ex.id]!=null&&typeof s.top?.[ex.id]==="boolean")top[ex.id]=s.top[ex.id];});
+    const rec={date:new Date(end).toISOString(),sessionId:pl.id,tag:pl.tag,duration,calories:cal,weights:numericWeights,comp:{...done},swapped,...(skipped.length?{skipped}:{}),...(Object.keys(top).length?{top}:{})};
     return{rec,prs};
   };
 

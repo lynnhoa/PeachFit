@@ -26,11 +26,17 @@ export const localDay=(d=new Date())=>`${d.getFullYear()}-${String(d.getMonth()+
 // 1 never done                         → programme start weight
 // 2 last done 28+ days ago             → FRESH START: back to programme start weight
 // 3 last done 15–27 days ago           → one step lighter (never below the start weight)
-// 4 progression: one step up only when the last `freq` sessions AT THE CURRENT WEIGHT
-//   were all complete, span at least (freq-1)×7 days, and have no 15+ day break between them
-//   (so sessions from before a break never count toward an increase)
+// 4 progression (double progression): one step up only when the last `freq` sessions AT THE CURRENT WEIGHT
+//   were all complete, span at least (freq-1)×7 days, have no 15+ day break between them
+//   (so sessions from before a break never count toward an increase), AND in the last 2 of them
+//   you answered "Yes" to "top of the rep range on every set?" (saved as session.top[exerciseId])
 export const FRESH_START_DAYS=28;
 export const COMEBACK_DAYS=15;
+export const TOP_SESSIONS=2;
+// Exercises whose weight the app progresses (these get the "top of range?" question)
+export const progresses=ex=>!!ex&&!ex.bw&&!!ex.step&&!!ex.freq;
+// Top of the rep range: "8–12" → 12, "12–15/leg" → 15, "10" → 10
+export const topReps=reps=>{const m=String(reps).match(/(\d+)(?!.*\d)/);return m?Number(m[1]):null;};
 export function getWeight(ex,sessions,sessionId=null){
   if(ex.bw)return"BW";
   const unit=unitOf(ex);
@@ -53,7 +59,8 @@ export function getWeight(ex,sessions,sessionId=null){
   const spanDays=(t(recent[recent.length-1])-t(recent[0]))/86400000;
   if(spanDays<(ex.freq-1)*7)return w;
   const allDone=recent.every(s=>(Number(s.comp?.[ex.id])||0)>=ex.sets);
-  return allDone?roundLoad(w+ex.step,unit):w;
+  const topOk=recent.slice(-TOP_SESSIONS).every(s=>s.top?.[ex.id]===true);
+  return allDone&&topOk?roundLoad(w+ex.step,unit):w;
 }
 // Highest weight actually lifted (sets done, not swapped)
 export function getPR(ex,sessions){

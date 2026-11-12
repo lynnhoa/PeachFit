@@ -40,16 +40,21 @@ Machine and new-exercise starting weights are estimates. If the first session fe
 
 ## Progressive overload — how the app decides
 
-1. **Double progression (you):** stay at a weight and work up through the rep range
-   (e.g. hip thrust 8 → 12 reps). Only tap a set as done if you hit at least the bottom of the range with good form.
-2. **Weight step (app):** the weight goes up one step after **every set is complete** in the last
-   **3 sessions** at that weight (4 for kickback and lateral raise), spread over at least 2 weeks (3 for those).
-   Training a day twice in one week doesn't speed it up.
-3. **A missed set** keeps you at the same weight. It never drops for that.
-4. **Bodyweight moves** (plank, dead bug, knee raise, back extension) don't add weight: add reps, hold longer,
+1. **Reps first:** stay at a weight and work up through the rep range (e.g. hip thrust 8 → 12 reps).
+   Tap a set as done when you reach at least the bottom of the range with good form.
+2. **After the last set** of each weighted exercise the app asks **"Top of the range on every set?"**
+   (e.g. 12 reps on all 4 hip thrust sets). Answer on the rest screen, or on the end screen before saving.
+3. **Weight goes up one step only when all of these are true:**
+   - every set was finished in the last **3 sessions** at that weight (4 for kickback and lateral raise),
+     spread over at least 2 weeks (3 for those)
+   - you answered **Yes** in the **last 2** of those sessions
+   - no 15+ day break in between
+   Training a day twice in one week doesn't speed it up. After a step up, drop back to the bottom of the range.
+4. **"Not yet" or a missed set** keeps you at the same weight. It never drops for that.
+5. **Bodyweight moves** (plank, dead bug, knee raise, back extension) don't add weight: add reps, hold longer,
    or move slower.
 
-Typical pace: hip thrust +5 kg about every 3 weeks → ~60 → 75 kg over the first 3 months.
+Fastest possible pace: hip thrust +5 kg every 3 weeks. Usually slower — it waits until you own the top of the range.
 
 ## Irregular training
 
