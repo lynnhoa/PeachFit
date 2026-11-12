@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, createContext, useContext, Fragment } from
 import { P } from "./theme";
 import { SESSIONS, DEFAULT_SESSIONS, applyProgramme, clonePlan } from "./programme";
 import { cloud } from "./cloud";
+import { photoFor } from "./photos";
 import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, progresses, topReps, FRESH_START_DAYS, COMEBACK_DAYS, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, SCHEMA, workoutId, bodyId, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
@@ -672,8 +673,13 @@ function Modal(){
         </div>
         <button onClick={()=>setModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
-      {/* Animation */}
-      <div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>
+      {/* Photo of the exercise when there is one (photos/), otherwise the drawing */}
+      {(()=>{const photo=photoFor(modal);return photo
+        ?<figure style={{margin:"14px 0"}}>
+          <img src={photo.src} alt={`${modal.name} — how it looks`} loading="lazy" style={{display:"block",width:"100%",aspectRatio:"3 / 2",objectFit:"cover",borderRadius:12,background:P.bg}}/>
+          {photo.credit&&<figcaption style={{fontSize:9,color:P.roseMid,marginTop:4,textAlign:"right"}}>{photo.credit}</figcaption>}
+        </figure>
+        :<div style={{background:P.bg,borderRadius:12,display:"flex",justifyContent:"center",alignItems:"center",margin:"14px 0",minHeight:96}}><Anim/></div>;})()}
       {/* Instruction rows */}
       {[["START POSITION",modal.start,IcPin,false],["THE MOVE",modal.cue,IcMove,false],["LYNN'S TIP",modal.tip,IcStar,true],["DON'T",modal.dont,IcDont,false]].filter(r=>r[1]).map(([lb,ct,Ic,isTip])=>(
         <div key={lb as string} style={{marginBottom:8,padding:"10px 13px",background:isTip?P.roseLite:P.bg,borderRadius:10,borderLeft:isTip?`2.5px solid ${P.roseDark}`:"none"}}>
