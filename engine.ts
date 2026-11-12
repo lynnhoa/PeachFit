@@ -4,7 +4,9 @@ import { SESSIONS } from "./programme";
 // Units: kg (default), "level" (Stairmaster), "km/h" (Incline Walk)
 export const unitOf=ex=>ex.unit||"kg";
 export function roundLoad(v,unit="kg"){return unit==="level"?Math.round(v):unit==="km/h"?Math.round(v*2)/2:Math.round(v*4)/4;}
-export function fmtLoad(v,unit="kg"){if(v==null||v==="")return"—";if(v==="BW")return"BW";return unit==="level"?`Level ${v}`:unit==="km/h"?`${v} km/h`:`${v} kg`;}
+// Per-side plate load for a barbell exercise ("20 kg/side"), per-hand label for dumbbells ("per hand"), else null
+export const sideNote=(v,ex)=>{if(!ex||typeof v!=="number")return null;if(ex.bar)return`${Math.max(0,roundLoad((v-ex.bar)/2))} kg/side`;if(ex.per)return`per ${ex.per}`;return null;};
+export function fmtLoad(v,unit="kg",ex=null){if(v==null||v==="")return"—";if(v==="BW")return"BW";if(unit==="level")return`Level ${v}`;if(unit==="km/h")return`${v} km/h`;if(ex?.bar)return`${v} kg (${sideNote(v,ex)})`;if(ex?.per)return`${v} kg/${ex.per}`;return`${v} kg`;}
 
 // An exercise counts only when at least one set was done and it wasn't swapped for something else
 export const performed=(s,id)=>(Number(s.comp?.[id])||0)>0&&!(s.swapped&&s.swapped[id])&&s.weights&&s.weights[id]!=null;
@@ -168,7 +170,7 @@ export function getMilestones(sessions,bodyLog,profile={}){
   if(sessions.length>=10)ms.push({id:"s10",icon:"sessions",title:"10 sessions complete",sub:"You showed up 10 times. That's the whole game."});
   if(sessions.length>=25)ms.push({id:"s25",icon:"sessions",title:"25 sessions complete",sub:"25 sessions. You're not trying it anymore — you're doing it."});
   const types=new Set(sessions.filter(s=>new Date(s.date)>Date.now()-7*86400000).map(s=>s.sessionId));
-  if(types.size===3)ms.push({id:"full3",icon:"star",title:"Full week — all 3 sessions",sub:"Glutes Heavy, Core + Waist, and Glutes + Core all covered in one week. Balanced."});
+  if(types.size===3)ms.push({id:"full3",icon:"star",title:"Full week — all 3 sessions",sub:"Glutes A, Core + Waist, and Glutes B all covered in one week. Balanced."});
   return ms.reverse();
 }
 

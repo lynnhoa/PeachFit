@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { P } from "./theme";
 import { SESSIONS } from "./programme";
-import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
+import { getWeight, getPR, lastWeight, performed, sinceReset, unitOf, roundLoad, fmtLoad, sideNote, latest, latestEntry, earliest, localDay, kcal, getGreeting, getProteinHitRate, getTodayProtein, getBanner, getETA, getCoach, getMilestones, suggestSession } from "./engine";
 import { APP_VERSION, DEFAULT_PROFILE, ld, sv, migrate, loadLive, saveLive, clearLive, parseBackup, exportBackup } from "./storage";
 
 // ── CUSTOM SVG ICONS ─────────────────────────────────────────────────────────
@@ -318,8 +318,8 @@ function Workout(){
         <RestRing/>
         <div style={{background:"rgba(255,255,255,0.05)",borderRadius:14,padding:"12px 20px",textAlign:"center",marginBottom:22,minWidth:220}}>
           <p style={{fontSize:8,letterSpacing:"0.18em",color:P.roseMid,textTransform:"uppercase",marginBottom:5}}>{nextIsNewEx?"NEXT EXERCISE":"NEXT SET"}</p>
-          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx))}</p></>)
-          :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":swappedTo?"Swap · not tracked":fmtLoad(cw,unit)}</p></>)}
+          {nextIsNewEx&&nextEx?(<><p style={{fontSize:15,color:"white",fontWeight:600,marginBottom:2}}>{sess.swapped?.[nextEx.id]||nextEx.name}</p><p style={{fontSize:10,color:P.roseMid}}>{nextEx.sets} × {nextEx.reps} · {nextEx.bw?"BW":fmtLoad(sess.weights?.[nextEx.id]??getWeight(nextEx,lifts,active.id),unitOf(nextEx),nextEx)}</p></>)
+          :(<><p style={{fontSize:15,color:"white",fontWeight:600}}>Set {(sess.nextSet??0)+1} of {ex.sets}</p><p style={{fontSize:10,color:P.roseMid}}>{ex.bw?"Bodyweight":swappedTo?"Swap · not tracked":fmtLoad(cw,unit,ex)}</p></>)}
         </div>
         <button onClick={()=>advanceAfterRest(true)} style={{background:"none",border:`1.5px solid rgba(242,160,176,0.35)`,color:P.roseMid,borderRadius:40,padding:"9px 24px",fontSize:11,cursor:"pointer",fontFamily:"'DM Sans'",letterSpacing:"0.07em"}}>SKIP REST</button>
       </div>
@@ -401,6 +401,7 @@ function Workout(){
               style={{background:"none",border:"none",color:P.roseMid,fontSize:22,cursor:"pointer",padding:"10px 16px",fontFamily:"'DM Sans'",lineHeight:1,WebkitAppearance:"none"}}>+</button>
           </div>
         )}
+        {!ex.bw&&!swappedTo&&sideNote(cw,ex)&&<p className="mono" style={{fontSize:13,color:P.roseHero,marginBottom:4}}>{sideNote(cw,ex)}</p>}
         <p style={{fontSize:9,color:"rgba(255,255,255,0.3)",marginBottom:6,letterSpacing:"0.06em",visibility:ex.bw||swappedTo?"hidden":"visible"}}>tap − + to adjust</p>
         <p className="mono" style={{fontSize:14,color:P.rosePrimary}}>{ex.sets} sets × {ex.reps}</p>
         {timedSecs(ex.reps)&&setsCompletedForEx<ex.sets&&<MoveTimer key={`${ex.id}-${currentSet}`} secs={timedSecs(ex.reps)}/>}
@@ -779,7 +780,7 @@ function Progress(){
       {/* PANEL 2 — This week + Rhythm */}
       {(()=>{
         const fourWeeksAgo=Date.now()-28*86400000;
-        const sessTypes=[["glutes","Glutes",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Glutes + Core",IcShape,P.accent]] as [string,string,any,string][];
+        const sessTypes=[["shape","Glutes B",IcShape,P.accent],["core","Core",IcCore,P.roseDark],["glutes","Glutes A",IcGlutes,P.rosePrimary]] as [string,string,any,string][];
         const daysSinceLast=(id:string)=>{
           const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
           if(!last)return null;
@@ -811,7 +812,7 @@ function Progress(){
           {/* Rhythm divider */}
           <div style={{borderTop:`1px solid ${P.roseLite}`,paddingTop:6,flexShrink:0}}>
             {rhythm28.map(({id,count})=>{
-              const label=id==="glutes"?"Glutes":"Core";
+              const label=id==="glutes"?"Glutes A":"Core";
               const dots=[...Array(4)].map((_,i)=>i<count);
               const d=daysSinceLast(id);
               const agoTxt=d===null?"never":d===0?"today":d===1?"yesterday":`${d}d ago`;
@@ -835,7 +836,7 @@ function Progress(){
           <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength progress</p>
           <span style={{fontSize:10,color:P.roseMid}}>tap for all</span>
         </div>
-        {[{id:"ht",name:"Hip Thrust"},{id:"cc",name:"Cable Crunch"},{id:"sm",name:"Smith Thrust"}].map((ex)=>{
+        {[{id:"ht_b",name:"Hip Thrust B"},{id:"cc",name:"Cable Crunch"},{id:"ht_a",name:"Hip Thrust A"}].map((ex)=>{
           const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
           const lifts=sinceReset(data);
           const pr=allEx?getPR(allEx,lifts):null;
@@ -849,8 +850,8 @@ function Progress(){
               <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(to right,${P.rosePrimary},${P.roseDark})`,borderRadius:2}}/>
             </div>
             <span className="mono" style={{fontSize:13,color:P.roseDark,minWidth:52,textAlign:"right",flexShrink:0}}>
-              {last!=null?fmtLoad(last,unitOf(allEx)):"—"}
-              {next!=null&&next!==last&&<span style={{display:"block",fontSize:9,color:P.roseMid,fontFamily:"'DM Sans'",marginTop:2}}>next {fmtLoad(next,unitOf(allEx))}</span>}
+              {last!=null?fmtLoad(last,unitOf(allEx),allEx):"—"}
+              {next!=null&&next!==last&&<span style={{display:"block",fontSize:9,color:P.roseMid,fontFamily:"'DM Sans'",marginTop:2}}>next {fmtLoad(next,unitOf(allEx),allEx)}</span>}
             </span>
           </div>);
         })}
@@ -1055,9 +1056,9 @@ function ProgressModal(){
     const localWeekTypes=new Set(localWeekSess.map(s=>s.sessionId));
 
     const sessTypes=[
-      {id:"glutes",label:"Glutes",Ic:IcGlutes,col:P.rosePrimary},
-      {id:"core",   label:"Core",  Ic:IcCore,  col:P.roseDark},
-      {id:"shape",  label:"Glutes + Core", Ic:IcShape, col:P.accent},
+      {id:"shape",  label:"Glutes B",Ic:IcShape, col:P.accent},
+      {id:"core",   label:"Core",    Ic:IcCore,  col:P.roseDark},
+      {id:"glutes", label:"Glutes A",Ic:IcGlutes,col:P.rosePrimary},
     ];
     const daysSinceLast=(id:string):number|null=>{
       const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
@@ -1082,7 +1083,7 @@ function ProgressModal(){
     });
 
     const cellBg:Record<"glutes"|"core"|"shape",string>={glutes:P.rosePrimary,core:P.roseDark,shape:P.accent};
-    const cellTxt:Record<"glutes"|"core"|"shape",string>={glutes:"G",core:"C",shape:"G+C"};
+    const cellTxt:Record<"glutes"|"core"|"shape",string>={glutes:"A",core:"C",shape:"B"};
     const wkLabel=["3 wk ago","2 wk ago","Last wk","This wk"];
 
     const counts28={
@@ -1094,7 +1095,7 @@ function ProgressModal(){
     const weekG=localWeekTypes.has("glutes"),weekC=localWeekTypes.has("core"),weekS=localWeekTypes.has("shape");
     const coachWk=weekG&&weekC&&weekS
       ?"All three covered this week — this is exactly the pace that changes your body."
-      :weekG&&weekC?"Glutes and core covered — both goals are being worked. Add Glutes + Core for full balance."
+      :weekG&&weekC?"Glutes A and core covered — both goals are being worked. Add Glutes B for full balance."
       :weekG?"Glutes done. Add core next — waist work needs its own session."
       :weekC?"Core done. Hip thrusts next — glute shape needs consistent loading."
       :"Nothing logged this week yet. One session is enough to start — pick any.";
@@ -1129,7 +1130,7 @@ function ProgressModal(){
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {([
           {label:"Sessions",val:`${sess28.length}`,sub:"total"},
-          {label:"Glutes",val:`${counts28.glutes}×`,sub:"sessions"},
+          {label:"Glutes A",val:`${counts28.glutes}×`,sub:"sessions"},
           {label:"Core",val:`${counts28.core}×`,sub:"sessions"},
         ] as {label:string,val:string,sub:string}[]).map(({label,val,sub})=>(
           <div key={label} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 2px 10px rgba(212,120,138,0.07)"}}>
@@ -1160,7 +1161,7 @@ function ProgressModal(){
               return(
                 <div key={di} style={{display:"flex",alignItems:"center",justifyContent:"center"}}>
                   <div style={{width:"100%",paddingBottom:"100%",position:"relative",borderRadius:5,background:bg,boxShadow:wi===3&&di===todayDow?`inset 0 0 0 1.5px ${P.roseDark}`:"none",opacity:wi===3&&di>todayDow?0.45:1}}>
-                    <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:cell&&cell.id==="shape"?9:10,fontWeight:700,color:txtCol}}>{txt}</span>
+                    <span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,fontWeight:700,color:txtCol}}>{txt}</span>
                   </div>
                 </div>
               );
@@ -1170,9 +1171,9 @@ function ProgressModal(){
         {/* Legend */}
         <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
           {([
-            {col:P.rosePrimary+"dd",lbl:"Glutes"},
+            {col:P.rosePrimary+"dd",lbl:"Glutes A"},
             {col:P.roseDark+"dd",lbl:"Core"},
-            {col:P.accent+"dd",lbl:"Glutes + Core"},
+            {col:P.accent+"dd",lbl:"Glutes B"},
             {col:P.roseLite+"99",lbl:"Rest"},
           ] as {col:string,lbl:string}[]).map(({col,lbl})=>(
             <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1199,13 +1200,13 @@ function ProgressModal(){
         name:"Glutes & shape",
         col:P.rosePrimary,
         goalLine:"Getting stronger here = more shape, more lift.",
-        ids:["ht","sm","rdl","kb","dk"],
+        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","pt","abd"],
       },
       {
         name:"Waist & core",
         col:P.roseDark,
         goalLine:"Getting stronger here = smaller waist, flatter stomach.",
-        ids:["cc","wc","pp","iw"],
+        ids:["cc","wc","pp"],
       },
     ];
 
@@ -1273,7 +1274,7 @@ function ProgressModal(){
                 {/* Start → Now journey */}
                 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
                   <div style={{textAlign:"center",flexShrink:0}}>
-                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:13,color:P.roseMid,lineHeight:1}}>{fmtLoad(startKg,u)}</p>
+                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:13,color:P.roseMid,lineHeight:1}}>{fmtLoad(startKg,u,ex)}</p>
                     <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>start</p>
                   </div>
                   <div style={{flex:1,position:"relative"}}>
@@ -1286,7 +1287,7 @@ function ProgressModal(){
                     {gain===0&&<p style={{fontSize:8,color:P.roseMid,textAlign:"center",marginTop:2}}>starting out</p>}
                   </div>
                   <div style={{textAlign:"center",flexShrink:0}}>
-                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:16,color:g.col,fontWeight:600,lineHeight:1}}>{fmtLoad(lastLogged,u)}</p>
+                    <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:16,color:g.col,fontWeight:600,lineHeight:1}}>{fmtLoad(lastLogged,u,ex)}</p>
                     <p style={{fontSize:7,color:P.roseMid,marginTop:1}}>now</p>
                   </div>
                 </div>
@@ -1598,7 +1599,7 @@ function PlanModal(){
             </div>
             <div style={{textAlign:"right",flexShrink:0}}>
               <p className="mono" style={{fontSize:12,color:P.roseDark,marginBottom:1}}>{ex.sets}×{ex.reps}</p>
-              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":fmtLoad(cw,unitOf(ex))}{isUp?" ↑":isDown?" ↓":""}</p>
+              <p style={{fontSize:11,color:isUp?P.roseDark:isDown?"#b07d00":P.roseMid,fontWeight:isUp||isDown?600:400}}>{ex.bw?"BW":fmtLoad(cw,unitOf(ex),ex)}{isUp?" ↑":isDown?" ↓":""}</p>
             </div>
           </div>);
         })}
