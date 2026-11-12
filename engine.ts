@@ -96,11 +96,8 @@ export function getBanner(sessions,nutritionLog,bodyLog=[],profile={}){
   if(pr&&pr.total>=3&&pr.rate<3/7)return"Most days this week you didn't hit protein. Even Greek yoghurt + chicken = 40g. Your muscles need it.";
   const weekAgo=Date.now()-7*86400000;
   const thisWeek=sessions.filter(s=>new Date(s.date)>weekAgo);
-  const counts={glutes:0,core:0,shape:0};
-  thisWeek.forEach(s=>{if(counts[s.sessionId]!==undefined)counts[s.sessionId]++;});
-  if(counts.glutes>=2&&counts.core===0)return"You've trained glutes twice — consider Core today for balance.";
   if(daysSince>=7)return`It's been ${daysSince} days since your last session — your body is ready. Pick any session and go.`;
-  if(thisWeek.length>=3)return`Strong 7 days — ${thisWeek.length} sessions done. You're building the habit.`;
+  if(thisWeek.length>=2)return`Strong 7 days — ${thisWeek.length} sessions done. You're building the habit.`;
   const lastType=SESSIONS.find(s=>s.id===lastSession.sessionId);
   if(lastType){
     const next=suggestSession(sessions);
@@ -153,12 +150,12 @@ export function getCoach(sessions,bodyLog){
   const wsDelta=hasWaist?ws1-ws0:0;
   const bfVals=bodyLog.filter(e=>e.bodyFat!=null).map(e=>e.bodyFat);
   const weekAgo=Date.now()-7*86400000;
-  const recentCore=sessions.filter(s=>new Date(s.date)>weekAgo&&s.sessionId==="core").length;
+  const recentSessions=sessions.filter(s=>new Date(s.date)>weekAgo).length;
   const daysSinceLog=Math.floor((Date.now()-new Date(last.date))/86400000);
   if(daysSinceLog>7)return"Step on the scale — your progress is waiting.";
   if(wtDelta<-1&&hasWaist&&wsDelta<-1)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg, waist down ${Math.abs(wsDelta).toFixed(1)} cm. Keep going.`;
   if(wtDelta>=0&&bfVals.length>1&&bfVals[bfVals.length-1]<bfVals[bfVals.length-2])return"Weight steady, body fat dropping. That's recomposition.";
-  if(hasWaist&&wsDelta<-0.5&&recentCore>=2)return`Waist down ${Math.abs(wsDelta).toFixed(1)} cm. Core sessions are working.`;
+  if(hasWaist&&wsDelta<-0.5&&recentSessions>=2)return`Waist down ${Math.abs(wsDelta).toFixed(1)} cm. The training is working.`;
   if(wtDelta<-0.5)return`Weight down ${Math.abs(wtDelta).toFixed(1)} kg. The deficit is working — stay consistent.`;
   if(sessions.length>=10)return`${sessions.length} sessions done. Consistency is everything.`;
   return"Every session counts. You're building something real.";
@@ -182,17 +179,13 @@ export function getMilestones(sessions,bodyLog,profile={}){
   if(sessions.length>=10)ms.push({id:"s10",icon:"sessions",title:"10 sessions complete",sub:"You showed up 10 times. That's the whole game."});
   if(sessions.length>=25)ms.push({id:"s25",icon:"sessions",title:"25 sessions complete",sub:"25 sessions. You're not trying it anymore — you're doing it."});
   const types=new Set(sessions.filter(s=>new Date(s.date)>Date.now()-7*86400000).map(s=>s.sessionId));
-  if(types.size===3)ms.push({id:"full3",icon:"star",title:"Full week — all 3 sessions",sub:"Glutes A, Core + Waist, and Glutes B all covered in one week. Balanced."});
+  if(types.has("glutes")&&types.has("shape"))ms.push({id:"full2",icon:"star",title:"Full week — both days",sub:"Day 1 and Day 2 done in one week. That's the whole plan."});
   return ms.reverse();
 }
 
 // ── SESSION SUGGESTION — one rule for the Today badge and the banner ─────────
-// Two glutes sessions this week and no core → Core. Otherwise the session done longest ago (never done first).
+// The session done longest ago (never done first) — Day 1 and Day 2 alternate.
 export function suggestSession(sessions){
-  const weekAgo=Date.now()-7*86400000;
-  const counts={glutes:0,core:0,shape:0};
-  sessions.filter(s=>new Date(s.date).getTime()>weekAgo).forEach(s=>{if(counts[s.sessionId]!==undefined)counts[s.sessionId]++;});
-  if(counts.glutes>=2&&counts.core===0)return SESSIONS.find(s=>s.id==="core");
   return SESSIONS.reduce((a,s)=>{
     const lastA=sessions.filter(x=>x.sessionId===a.id).slice(-1)[0];
     const lastS=sessions.filter(x=>x.sessionId===s.id).slice(-1)[0];

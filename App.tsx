@@ -57,6 +57,10 @@ const A={
   be:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-ex{0%,100%{transform:rotate(30deg)}55%{transform:rotate(-10deg)}}.ex-eb{transform-origin:55px 60px;animation:ex-ex 2s ease-in-out infinite}`}</style><rect x="40" y="50" width="20" height="40" rx="6" fill={P.roseLite}/><rect x="38" y="88" width="24" height="8" rx="3" fill={P.roseMid}/><g className="ex-eb"><rect x="42" y="36" width="16" height="28" rx="6" fill={P.roseDark}/><circle cx="50" cy="26" r="10" fill={P.roseHero}/><rect x="44" y="62" width="12" height="22" rx="5" fill={P.rosePrimary}/><line x1="50" y1="42" x2="30" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="50" y1="42" x2="70" y2="38" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
   aw:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes ex-rll{0%,100%{transform:translateX(0) rotate(0deg)}50%{transform:translateX(28px) rotate(30deg)}}.ex-arb{animation:ex-rll 2s ease-in-out infinite}`}</style><rect x="0" y="80" width="140" height="5" rx="2" fill={P.roseLite}/><g className="ex-arb"><circle cx="50" cy="72" r="10" fill={P.roseMid}/><rect x="44" y="56" width="12" height="18" rx="5" fill={P.rosePrimary}/><rect x="36" y="54" width="28" height="6" rx="3" fill={P.roseDark}/><rect x="38" y="38" width="24" height="20" rx="6" fill={P.roseDark}/><circle cx="50" cy="28" r="10" fill={P.roseHero}/><line x1="50" y1="44" x2="30" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="50" y1="44" x2="70" y2="50" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
   bc:()=><svg viewBox="0 0 140 90" width="140" height="90"><style>{`@keyframes ex-cl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-60deg)}}@keyframes ex-cr2{0%,100%{transform:rotate(-60deg)}50%{transform:rotate(0deg)}}.ex-ll{transform-origin:65px 65px;animation:ex-cl 1.2s ease-in-out infinite}.ex-rl{transform-origin:75px 65px;animation:ex-cr2 1.2s ease-in-out infinite}`}</style><rect x="0" y="82" width="140" height="5" rx="2" fill={P.roseLite}/><ellipse cx="70" cy="56" rx="22" ry="10" fill={P.roseDark}/><circle cx="70" cy="36" r="12" fill={P.roseHero}/><line x1="60" y1="40" x2="44" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="80" y1="40" x2="96" y2="34" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><g className="ex-ll"><rect x="58" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g><g className="ex-rl"><rect x="70" y="65" width="12" height="20" rx="5" fill={P.rosePrimary}/></g></svg>,
+  lp:()=><svg viewBox="0 0 120 110" width="120" height="110"><style>{`@keyframes ex-lp{0%,100%{transform:translateY(0)}50%{transform:translateY(16px)}}.ex-lpa{animation:ex-lp 1.8s ease-in-out infinite}`}</style><rect x="56" y="0" width="4" height="14" fill={P.roseLite}/><rect x="40" y="80" width="40" height="8" rx="3" fill={P.roseLite}/><rect x="50" y="48" width="18" height="32" rx="6" fill={P.roseDark}/><circle cx="59" cy="38" r="10" fill={P.roseHero}/><rect x="46" y="80" width="12" height="22" rx="5" fill={P.rosePrimary}/><rect x="60" y="80" width="12" height="22" rx="5" fill={P.rosePrimary}/><g className="ex-lpa"><rect x="22" y="14" width="74" height="5" rx="2" fill={P.roseMid}/><line x1="34" y1="18" x2="50" y2="50" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><line x1="84" y1="18" x2="68" y2="50" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/></g></svg>,
+  row:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-rw{0%,100%{transform:translateX(0)}50%{transform:translateX(-18px)}}.ex-rwa{animation:ex-rw 1.8s ease-in-out infinite}`}</style><rect x="126" y="20" width="6" height="70" rx="2" fill={P.roseLite}/><rect x="30" y="72" width="40" height="8" rx="3" fill={P.roseLite}/><rect x="40" y="40" width="16" height="34" rx="6" fill={P.roseDark}/><circle cx="48" cy="30" r="10" fill={P.roseHero}/><rect x="54" y="66" width="40" height="10" rx="5" fill={P.rosePrimary}/><g className="ex-rwa"><line x1="56" y1="50" x2="104" y2="50" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><rect x="104" y="44" width="6" height="12" rx="2" fill={P.roseMid}/></g></svg>,
+  lr:()=><svg viewBox="0 0 140 110" width="140" height="110"><style>{`@keyframes ex-lrl{0%,100%{transform:rotate(0deg)}50%{transform:rotate(70deg)}}@keyframes ex-lrr{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-70deg)}}.ex-lrl{transform-origin:62px 46px;animation:ex-lrl 2s ease-in-out infinite}.ex-lrr{transform-origin:78px 46px;animation:ex-lrr 2s ease-in-out infinite}`}</style><rect x="62" y="42" width="16" height="36" rx="6" fill={P.roseDark}/><circle cx="70" cy="32" r="10" fill={P.roseHero}/><rect x="60" y="78" width="9" height="26" rx="4" fill={P.rosePrimary}/><rect x="71" y="78" width="9" height="26" rx="4" fill={P.rosePrimary}/><g className="ex-lrl"><line x1="62" y1="46" x2="62" y2="76" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><circle cx="62" cy="80" r="5" fill={P.roseMid}/></g><g className="ex-lrr"><line x1="78" y1="46" x2="78" y2="76" stroke={P.rosePrimary} strokeWidth="6" strokeLinecap="round"/><circle cx="78" cy="80" r="5" fill={P.roseMid}/></g></svg>,
+  pl:()=><svg viewBox="0 0 140 80" width="140" height="80"><style>{`@keyframes ex-plb{0%,100%{opacity:1}50%{opacity:0.75}}.ex-plg{animation:ex-plb 2s ease-in-out infinite}`}</style><rect x="0" y="68" width="140" height="5" rx="2" fill={P.roseLite}/><g className="ex-plg"><circle cx="112" cy="34" r="9" fill={P.roseHero}/><rect x="36" y="36" width="68" height="13" rx="6" fill={P.roseDark}/><rect x="10" y="44" width="34" height="9" rx="4" fill={P.rosePrimary}/><rect x="96" y="44" width="8" height="24" rx="3" fill={P.rosePrimary}/><rect x="96" y="62" width="22" height="6" rx="3" fill={P.rosePrimary}/></g></svg>,
   cd:()=><svg viewBox="0 0 140 100" width="140" height="100"><style>{`@keyframes ex-wk{0%,100%{transform:translateX(0)}50%{transform:translateX(5px)}}@keyframes ex-sl{0%,100%{transform:rotate(-22deg)}50%{transform:rotate(22deg)}}@keyframes ex-sr{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-22deg)}}.ex-wlk{animation:ex-wk 0.85s ease-in-out infinite}.ex-sll{transform-origin:68px 68px;animation:ex-sl 0.85s ease-in-out infinite}.ex-slr{transform-origin:74px 68px;animation:ex-sr 0.85s ease-in-out infinite}`}</style><rect x="0" y="85" width="140" height="10" rx="3" fill={P.roseLite}/><g className="ex-wlk"><circle cx="71" cy="28" r="12" fill={P.roseHero}/><rect x="63" y="40" width="16" height="28" rx="6" fill={P.roseDark}/><g className="ex-sll"><rect x="62" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><g className="ex-slr"><rect x="67" y="68" width="11" height="20" rx="5" fill={P.rosePrimary}/></g><line x1="63" y1="50" x2="45" y2="62" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/><line x1="79" y1="50" x2="97" y2="42" stroke={P.rosePrimary} strokeWidth="7" strokeLinecap="round"/></g></svg>,
 };
 
@@ -212,7 +216,7 @@ function Today(){
             </div>
             <div style={{flex:1,minWidth:0}}>
               <h2 className="serif" style={{fontSize:17,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{pl.name}</h2>
-              <p style={{fontSize:11,color:P.roseMid,marginTop:3}}>{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+              <p style={{fontSize:11,color:P.roseMid,marginTop:3}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} ex · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
               <p style={{fontSize:11,color:isSuggested?P.roseDark:P.roseMid,marginTop:3,fontWeight:500}}>{status}</p>
             </div>
             <button aria-label={`Start ${pl.name}`} onClick={(e)=>{e.stopPropagation();startSession(pl);}} style={{width:40,height:40,borderRadius:"50%",background:isSuggested?P.roseDark:P.white,border:isSuggested?"none":`1.5px solid ${P.roseHero}`,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,padding:0}}>
@@ -780,13 +784,13 @@ function Progress(){
       {/* PANEL 2 — This week + Rhythm */}
       {(()=>{
         const fourWeeksAgo=Date.now()-28*86400000;
-        const sessTypes=[["glutes","Glutes A",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Glutes B",IcShape,P.accent]] as [string,string,any,string][];
+        const sessTypes=[["glutes","Day 1 · Wed",IcGlutes,P.rosePrimary],["shape","Day 2 · Fri",IcShape,P.accent]] as [string,string,any,string][];
         const daysSinceLast=(id:string)=>{
           const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
           if(!last)return null;
           return Math.floor((Date.now()-new Date(last.date).getTime())/86400000);
         };
-        const rhythm28=["glutes","core"].map(id=>{
+        const rhythm28=["glutes","shape"].map(id=>{
           const sess28=data.sessions.filter(s=>s.sessionId===id&&new Date(s.date).getTime()>fourWeeksAgo);
           return{id,count:sess28.length};
         });
@@ -812,7 +816,7 @@ function Progress(){
           {/* Rhythm divider */}
           <div style={{borderTop:`1px solid ${P.roseLite}`,paddingTop:6,flexShrink:0}}>
             {rhythm28.map(({id,count})=>{
-              const label=id==="glutes"?"Glutes A":"Core";
+              const label=id==="glutes"?"Day 1":"Day 2";
               const dots=[...Array(4)].map((_,i)=>i<count);
               const d=daysSinceLast(id);
               const agoTxt=d===null?"never":d===0?"today":d===1?"yesterday":`${d}d ago`;
@@ -836,7 +840,7 @@ function Progress(){
           <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength progress</p>
           <span style={{fontSize:10,color:P.roseMid}}>tap for all</span>
         </div>
-        {[{id:"ht_a",name:"Hip Thrust A"},{id:"cc",name:"Cable Crunch"},{id:"ht_b",name:"Hip Thrust B"}].map((ex)=>{
+        {[{id:"ht_a",name:"Hip Thrust A"},{id:"lp",name:"Lat Pulldown"},{id:"ht_b",name:"Hip Thrust B"}].map((ex)=>{
           const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
           const lifts=sinceReset(data);
           const pr=allEx?getPR(allEx,lifts):null;
@@ -988,8 +992,8 @@ function ChartPanel({close}){
   const xOf=(i)=>safeVals.length>1?pad+(i/(safeVals.length-1))*(W-pad*2):W/2;
   const yOf=(v)=>H-pad-((v-minV)/(maxV-minV||1))*(H-pad*2);
   const goalY=yOf(goal);
-  const coreLine=metric==="waist"&&data.sessions.filter(s=>s.sessionId==="core").length>0&&vals.length>1&&vals[vals.length-1]<vals[0]
-    ?"Core sessions are shrinking your waist. Keep them in rotation.":null;
+  const coreLine=metric==="waist"&&data.sessions.length>0&&vals.length>1&&vals[vals.length-1]<vals[0]
+    ?"Your training is shrinking your waist. Keep both days in rotation.":null;
   return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
     <div style={{width:32,height:3,background:P.roseLite,borderRadius:2,margin:"0 auto 16px"}}/>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -1056,9 +1060,8 @@ function ProgressModal(){
     const localWeekTypes=new Set(localWeekSess.map(s=>s.sessionId));
 
     const sessTypes=[
-      {id:"glutes", label:"Glutes A",Ic:IcGlutes,col:P.rosePrimary},
-      {id:"core",   label:"Core",    Ic:IcCore,  col:P.roseDark},
-      {id:"shape",  label:"Glutes B",Ic:IcShape, col:P.accent},
+      {id:"glutes", label:"Day 1 · Wed",Ic:IcGlutes,col:P.rosePrimary},
+      {id:"shape",  label:"Day 2 · Fri",Ic:IcShape, col:P.accent},
     ];
     const daysSinceLast=(id:string):number|null=>{
       const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
@@ -1093,11 +1096,10 @@ function ProgressModal(){
     };
 
     const weekG=localWeekTypes.has("glutes"),weekC=localWeekTypes.has("core"),weekS=localWeekTypes.has("shape");
-    const coachWk=weekG&&weekC&&weekS
-      ?"All three covered this week — this is exactly the pace that changes your body."
-      :weekG&&weekC?"Glutes A and core covered — both goals are being worked. Add Glutes B for full balance."
-      :weekG?"Glutes done. Add core next — waist work needs its own session."
-      :weekC?"Core done. Hip thrusts next — glute shape needs consistent loading."
+    const coachWk=weekG&&weekS
+      ?"Both days done this week — this is exactly the pace that changes your body."
+      :weekG?"Day 1 done. Day 2 on Friday finishes the week."
+      :weekS?"Day 2 done. Day 1 on Wednesday starts the next week strong."
       :"Nothing logged this week yet. One session is enough to start — pick any.";
 
     return(<div className="mo" onClick={close}><div className="ms sl" onClick={e=>e.stopPropagation()}>
@@ -1130,8 +1132,8 @@ function ProgressModal(){
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {([
           {label:"Sessions",val:`${sess28.length}`,sub:"total"},
-          {label:"Glutes A",val:`${counts28.glutes}×`,sub:"sessions"},
-          {label:"Core",val:`${counts28.core}×`,sub:"sessions"},
+          {label:"Day 1",val:`${counts28.glutes}×`,sub:"sessions"},
+          {label:"Day 2",val:`${counts28.shape}×`,sub:"sessions"},
         ] as {label:string,val:string,sub:string}[]).map(({label,val,sub})=>(
           <div key={label} style={{flex:1,background:P.white,border:`1px solid ${P.roseLite}`,borderRadius:12,padding:"10px 6px",textAlign:"center",boxShadow:"0 2px 10px rgba(212,120,138,0.07)"}}>
             <p style={{fontFamily:"'Tenor Sans',sans-serif",fontSize:20,color:P.roseDark,lineHeight:1,marginBottom:2}}>{val}</p>
@@ -1171,9 +1173,8 @@ function ProgressModal(){
         {/* Legend */}
         <div style={{display:"flex",gap:10,marginTop:8,flexWrap:"wrap"}}>
           {([
-            {col:P.rosePrimary+"dd",lbl:"Glutes A"},
-            {col:P.roseDark+"dd",lbl:"Core"},
-            {col:P.accent+"dd",lbl:"Glutes B"},
+            {col:P.rosePrimary+"dd",lbl:"Day 1 (A)"},
+            {col:P.accent+"dd",lbl:"Day 2 (B)"},
             {col:P.roseLite+"99",lbl:"Rest"},
           ] as {col:string,lbl:string}[]).map(({col,lbl})=>(
             <div key={lbl} style={{display:"flex",alignItems:"center",gap:4}}>
@@ -1200,13 +1201,13 @@ function ProgressModal(){
         name:"Glutes & shape",
         col:P.rosePrimary,
         goalLine:"Getting stronger here = more shape, more lift.",
-        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","pt","abd"],
+        ids:["ht_a","rdl_db","bss","kb_a","ht_b","ge","kb_b","abd"],
       },
       {
-        name:"Waist & core",
+        name:"Back, shoulders & abs",
         col:P.roseDark,
-        goalLine:"Getting stronger here = smaller waist, flatter stomach.",
-        ids:["cc","wc","pp"],
+        goalLine:"Getting stronger here = better posture, a smaller-looking waist.",
+        ids:["lp","row","abm","lr"],
       },
     ];
 
@@ -1505,7 +1506,7 @@ function Me(){
             );})}
           </div>
           <div style={{display:"flex",gap:8}}>
-            {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["No fixed days","train when ready"],[`${SESSIONS.length} sessions`,"full coverage"]].map(([val,sub])=>(
+            {[[`${SESSIONS.flatMap(s=>s.exercises).length} exercises`,"auto-progression"],["Wed + Fri","2 days a week"],[`${SESSIONS.length} sessions`,"A + B"]].map(([val,sub])=>(
               <div key={val} style={{flex:1}}>
                 <p style={{fontSize:13,color:P.roseDeep,fontWeight:500,lineHeight:1.2}}>{val}</p>
                 <p style={{fontSize:11,color:P.roseMid,lineHeight:1.4,marginTop:2}}>{sub}</p>
@@ -1579,7 +1580,7 @@ function PlanModal(){
         </div>
         <button onClick={()=>setPlanModal(null)} style={{background:"none",border:"none",cursor:"pointer",padding:4,flexShrink:0}}><IcClose c={P.roseMid} s={18}/></button>
       </div>
-      <p style={{fontSize:12,color:P.roseMid,marginBottom:16,lineHeight:1.5}}>{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
+      <p style={{fontSize:12,color:P.roseMid,marginBottom:16,lineHeight:1.5}}>{pl.day?`${pl.day} · `:""}{pl.exercises.length} exercises · ~{pl.duration} min · ~{kcal(pl.met,pl.duration)} kcal</p>
       {/* Away warning */}
       {ds>14&&<div style={{background:"#fff8ec",border:"1.5px solid #f5d08a",borderRadius:10,padding:"10px 14px",marginBottom:14,display:"flex",alignItems:"flex-start",gap:10}}>
         <span style={{fontSize:14,flexShrink:0}}>⚠️</span>
