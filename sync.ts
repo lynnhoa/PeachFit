@@ -279,7 +279,7 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
     init(a:{getData:()=>any,replaceData:(d:any)=>void}){
       app=a;if(inited)return;inited=true;
       const loc=win&&win.location?String(win.location.hash||"")+String(win.location.search||""):"";
-      if(meta().uid||/access_token|refresh_token|type=signup|[?&]code=/.test(loc))start(); // signed in, or back from the email link
+      if(meta().uid||/access_token|refresh_token|[?&]code=/.test(loc))start(); // signed in, or back from a Supabase email link
       if(win){
         win.addEventListener("online",()=>sync(true));
         win.document?.addEventListener("visibilitychange",()=>{if(win.document.visibilityState==="visible")sync(Date.now()-lastPull>20000);});
@@ -296,12 +296,6 @@ export function createSync({getClient,store,keyPrefix="lynn_gym_v3",win=(typeof 
       await start();const client=await getClient();
       const {error}=await client.auth.signInWithPassword({email:email.trim(),password});
       if(error)throw error;
-    },
-    async signUp(email:string,password:string,redirectTo?:string){
-      await start();const client=await getClient();
-      const {data,error}=await client.auth.signUp({email:email.trim(),password,options:redirectTo?{emailRedirectTo:redirectTo}:undefined});
-      if(error)throw error;
-      return{needsConfirmation:!data?.session};
     },
     async signOut(){
       // this phone keeps its data; it just stops syncing

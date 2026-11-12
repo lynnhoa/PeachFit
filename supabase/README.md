@@ -9,13 +9,13 @@ when it's back online.
 
 1. **Create the tables** — Supabase dashboard → **SQL Editor** → **New query** → paste
    [`schema.sql`](schema.sql) → **Run**. Running it again is safe.
-2. **Sign-in by email** — **Authentication → Sign In / Providers → Email** must be on (it is by default).
-   - Easiest: turn **Confirm email** off, so a new account can sign in straight away.
-   - Or leave it on: after *Create account* you get an email; tap the link, then sign in in the app.
-     Set **Authentication → URL Configuration → Site URL** to your app's address (the Vercel URL)
-     so the link opens PeachFit.
-3. **In the app** — **Me → Sync · all your phones** → *Create account* on the first phone
-   (it uploads everything that phone has), then *Sign in* with the same email + password on the others.
+2. **Create your account (only yours)** — **Authentication → Users → Add user → Create new user**:
+   your email + a password, tick **Auto Confirm User**, **Create user**.
+3. **Nobody else can sign up** — **Authentication → Sign In / Providers**: switch off
+   **Allow new users to sign up**, **Save**. Keep the **Email** provider on (that's how you sign in).
+   The app has no "create account" button: the only account is the one from step 2.
+4. **In the app** — **Me → Sync · all your phones** → sign in on your main phone first
+   (it uploads everything that phone has), then on the others with the same email + password.
 
 The project URL and publishable key are in [`cloud.ts`](../cloud.ts). The publishable key is designed to
 be in the app: it can only do what the Row Level Security policies allow — each account reads and

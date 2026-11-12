@@ -1778,7 +1778,6 @@ function useSyncStatus(){
 const authMessage=e=>{
   const m=String(e?.message||e||"");
   if(/invalid login credentials/i.test(m))return"Email or password is wrong.";
-  if(/already registered|already been registered/i.test(m))return"This email already has an account — sign in instead.";
   if(/email not confirmed/i.test(m))return"Confirm your email first (check your inbox), then sign in.";
   if(/failed to fetch|load failed|network/i.test(m))return"No connection — try again when you're online.";
   if(/password/i.test(m))return m;
@@ -1792,14 +1791,12 @@ function SyncPanel(){
   const[pw,setPw]=useState("");
   const[busy,setBusy]=useState(false);
   const[note,setNote]=useState(null); // {err,text}
-  const go=async mode=>{
-    if(!/\S+@\S+\.\S+/.test(email)||pw.length<6){setNote({err:true,text:"Enter your email and a password of at least 6 characters."});return;}
+  // Only your own account can sign in: it's created in Supabase (Authentication → Users), not in the app
+  const signIn=async()=>{
+    if(!/\S+@\S+\.\S+/.test(email)||!pw){setNote({err:true,text:"Enter your email and password."});return;}
     setBusy(true);setNote(null);
-    try{
-      if(mode==="in")await cloud.signIn(email,pw);
-      else{const r=await cloud.signUp(email,pw,location.origin);if(r.needsConfirmation)setNote({text:"Account created. Tap the link in the email we sent, then sign in here."});}
-      setPw("");
-    }catch(e){setNote({err:true,text:authMessage(e)});}
+    try{await cloud.signIn(email,pw);setPw("");}
+    catch(e){setNote({err:true,text:authMessage(e)});}
     finally{setBusy(false);}
   };
   const showForm=!st.linked||st.state==="signin";
@@ -1817,15 +1814,12 @@ function SyncPanel(){
       <p style={{fontSize:12,color:P.roseDeep,fontWeight:500,overflow:"hidden",textOverflow:"ellipsis"}}>{st.email}</p>
       <p style={{fontSize:11,color:lineCol,marginTop:3,lineHeight:1.5}}>{line}{st.pending>0&&st.state!=="syncing"?` · ${st.pending} change${st.pending!==1?"s":""} waiting`:""}</p>
     </>}
-    {!st.linked&&<p style={{fontSize:11,color:P.roseMid,lineHeight:1.6,marginBottom:10}}>Sign in to use PeachFit on more than one phone. Your plan, workouts, weights, body numbers and protein days are saved to your account and show up on every phone you sign in on.</p>}
+    {!st.linked&&<p style={{fontSize:11,color:P.roseMid,lineHeight:1.6,marginBottom:10}}>Sign in to use PeachFit on more than one phone. Your plan, workouts, weights, body numbers and protein days are kept in your account and show up on every phone you sign in on.</p>}
     {showForm&&<div style={{display:"flex",flexDirection:"column",gap:8,marginTop:st.linked?10:0}}>
       <input className="fld" type="email" autoComplete="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-      <input className="fld" type="password" autoComplete={st.linked?"current-password":"current-password"} placeholder="Password (6+ characters)" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")go("in");}}/>
-      <div style={{display:"flex",gap:8}}>
-        <button className="btnP" disabled={busy} style={{flex:1,padding:"11px 14px",opacity:busy?0.6:1}} onClick={()=>go("in")}>{busy?"…":"SIGN IN"}</button>
-        {!st.linked&&<button className="btnG" disabled={busy} style={{flex:1}} onClick={()=>go("up")}>CREATE ACCOUNT</button>}
-      </div>
-      {!st.linked&&<p style={{fontSize:10,color:P.roseMid,lineHeight:1.5}}>Use the same email and password on each phone.</p>}
+      <input className="fld" type="password" autoComplete="current-password" placeholder="Password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")signIn();}}/>
+      <button className="btnP" disabled={busy} style={{padding:"11px 14px",opacity:busy?0.6:1}} onClick={signIn}>{busy?"…":"SIGN IN"}</button>
+      {!st.linked&&<p style={{fontSize:10,color:P.roseMid,lineHeight:1.5}}>Same email and password on each phone. Your account is made in Supabase — the app can't create new accounts.</p>}
     </div>}
     {note&&<p style={{fontSize:11,color:note.err?"#c0392b":P.roseDark,marginTop:8,lineHeight:1.5}}>{note.text}</p>}
     {st.linked&&<div style={{display:"flex",gap:8,marginTop:10}}>
