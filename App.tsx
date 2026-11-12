@@ -780,7 +780,7 @@ function Progress(){
       {/* PANEL 2 — This week + Rhythm */}
       {(()=>{
         const fourWeeksAgo=Date.now()-28*86400000;
-        const sessTypes=[["shape","Glutes B",IcShape,P.accent],["core","Core",IcCore,P.roseDark],["glutes","Glutes A",IcGlutes,P.rosePrimary]] as [string,string,any,string][];
+        const sessTypes=[["glutes","Glutes A",IcGlutes,P.rosePrimary],["core","Core",IcCore,P.roseDark],["shape","Glutes B",IcShape,P.accent]] as [string,string,any,string][];
         const daysSinceLast=(id:string)=>{
           const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
           if(!last)return null;
@@ -836,7 +836,7 @@ function Progress(){
           <p style={{fontSize:10,letterSpacing:"0.2em",color:P.roseMid,textTransform:"uppercase",fontWeight:500}}>Strength progress</p>
           <span style={{fontSize:10,color:P.roseMid}}>tap for all</span>
         </div>
-        {[{id:"ht_b",name:"Hip Thrust B"},{id:"cc",name:"Cable Crunch"},{id:"ht_a",name:"Hip Thrust A"}].map((ex)=>{
+        {[{id:"ht_a",name:"Hip Thrust A"},{id:"cc",name:"Cable Crunch"},{id:"ht_b",name:"Hip Thrust B"}].map((ex)=>{
           const allEx=SESSIONS.flatMap(s=>s.exercises).find(e=>e.id===ex.id);
           const lifts=sinceReset(data);
           const pr=allEx?getPR(allEx,lifts):null;
@@ -1056,9 +1056,9 @@ function ProgressModal(){
     const localWeekTypes=new Set(localWeekSess.map(s=>s.sessionId));
 
     const sessTypes=[
-      {id:"shape",  label:"Glutes B",Ic:IcShape, col:P.accent},
-      {id:"core",   label:"Core",    Ic:IcCore,  col:P.roseDark},
       {id:"glutes", label:"Glutes A",Ic:IcGlutes,col:P.rosePrimary},
+      {id:"core",   label:"Core",    Ic:IcCore,  col:P.roseDark},
+      {id:"shape",  label:"Glutes B",Ic:IcShape, col:P.accent},
     ];
     const daysSinceLast=(id:string):number|null=>{
       const last=data.sessions.filter(s=>s.sessionId===id).slice(-1)[0];
